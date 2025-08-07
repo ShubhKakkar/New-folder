@@ -414,6 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const feedCommentEmojiBtn = e.target.closest('#feed-comment-emoji-picker-btn');
             const profileCommentEmojiBtn = e.target.closest('#profile-comment-emoji-picker-btn');
             const profileEmojiBtn = e.target.closest('#emoji-picker-btn');
+            const createPostEmojiBtn = e.target.closest('#create-post-emoji-btn'); // New
             const searchResultItem = e.target.closest('#user-search-results .username-link');
             const postOptionsBtn = e.target.closest('.post-options-btn');
             const editPostBtn = e.target.closest('.edit-post-btn');
@@ -641,6 +642,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (profileEmojiBtn) {
                 editProfileModal.querySelector('emoji-picker').classList.toggle('hidden');
             }
+            if (createPostEmojiBtn) {
+                document.getElementById('create-post-emoji-picker').classList.toggle('hidden');
+            }
             
             if (editPostBtn) {
                 e.stopPropagation(); // Prevent the click from bubbling up
@@ -805,6 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             else if (createPostForm) {
                 e.preventDefault();
+                const createPostButton = document.getElementById('createPostButton');
                 const imageFile = document.getElementById('postImageFile').files[0];
                 const caption = document.getElementById('postCaption').value;
 
@@ -812,6 +817,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Please select an image to upload.');
                     return;
                 }
+
+                // Disable the button immediately
+                createPostButton.disabled = true;
+                createPostButton.textContent = 'Sharing...';
 
                 try {
                     const imageUrl = await uploadImageToCloudinary(imageFile);
@@ -822,10 +831,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ imageUrl, caption }),
                     });
                     if (!res.ok) throw new Error('Failed to create post');
+                    
                     createPostModal.classList.replace('flex', 'hidden');
                     initializeApp();
                 } catch (error) {
                     alert(error.message);
+                } finally {
+                    // Re-enable the button regardless of success or failure
+                    createPostButton.disabled = false;
+                    createPostButton.textContent = 'Share';
                 }
             }
             else if (editPostForm) {
@@ -1022,6 +1036,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (picker.closest('#profile-single-post-modal')) {
             const input = picker.previousElementSibling.querySelector('.profile-comment-input');
             if (input) input.value += unicode;
+            picker.classList.add('hidden');
+        } else if (picker.closest('#create-post-modal')) {
+            document.getElementById('postCaption').value += unicode;
             picker.classList.add('hidden');
         }
     });
