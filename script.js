@@ -61,8 +61,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadImageToCloudinary = async (file) => {
         if (!file) return null;
 
+        let compressedFile = file;
+        const maxSizeMB = 5;
+
+        // Check if the file size is greater than 5MB
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            console.log('File size exceeds 5MB. Compressing...');
+            try {
+                // Use pica for high-quality resizing and compression
+                const pica = window.pica();
+                
+                // Create an off-screen canvas to draw the image
+                const img = new Image();
+                const imageBitmap = await createImageBitmap(file);
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = imageBitmap.width;
+                canvas.height = imageBitmap.height;
+                
+                await pica.resize(imageBitmap, canvas, {
+                    // Adjust the quality to reduce file size. 
+                    // 0.8 is a good balance between quality and size.
+                    quality: 0.8, 
+                    alpha: true
+                });
+
+                // Convert the canvas content back to a Blob (file)
+                compressedFile = await pica.toBlob(canvas, 'image/jpeg');
+
+                console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+                console.log(`Compressed size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+
+            } catch (error) {
+                console.error('Error during image compression:', error);
+                alert('Failed to compress image. Uploading original file.');
+                compressedFile = file; // Fallback to original file
+            }
+        }
+
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', compressedFile);
         formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
         try {
