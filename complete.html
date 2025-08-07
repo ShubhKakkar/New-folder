@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+    <!-- Socket.io Client -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .form-input { border-radius: 3px; padding: 9px 8px 7px; font-size: 12px; }
+        .form-input:focus { outline: none; }
+        .action-button { background-color: #0095f6; border-radius: 8px; font-weight: 600; color: white; }
+        .action-button:disabled { opacity: 0.3; }
+        .action-button.enabled { opacity: 1; }
+        .separator { display: flex; align-items: center; text-align: center; font-weight: 600; font-size: 13px; margin: 10px 40px 18px; }
+        .separator::before, .separator::after { content: ''; flex: 1; }
+        .separator::before { margin-right: .5em; }
+        .separator::after { margin-left: .5em; }
+        .facebook-login { color: #385185; font-weight: 600; }
+        .facebook-icon { font-size: 20px; margin-right: 8px; }
+        .story-ring { padding: 2px; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
+        .profile-tab { border-top: 1px solid transparent; }
+        .profile-tab.active { border-top: 1px solid #262626; }
+        html.dark .profile-tab.active { border-top: 1px solid #a8a8a8; }
+        .modal-backdrop { background-color: rgba(0,0,0,0.5); }
+        .like-btn.liked svg { fill: red; color: red; }
+        .username-link { cursor: pointer; font-weight: 600; }
+        .username-link:hover { text-decoration: underline; }
+    </style>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-black">
+
+    <!-- Auth Container -->
+    <div id="auth-container">
+        <div class="container mx-auto flex justify-center items-center min-h-screen px-4">
+            <main class="flex flex-col md:flex-row items-center justify-center w-full max-w-4xl">
+                <div class="hidden md:block md:w-1/2 pr-8"><img src="https://static.cdninstagram.com/rsrc.php/v3/y4/r/ItTndlZM2n2.png" alt="Instagram on Phone" class="h-auto w-full"></div>
+                <div class="w-full max-w-sm md:w-1/2">
+                    <div id="login-view">
+                        <div class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-10 text-center">
+                            <div class="mb-5"><img src="https://static.cdninstagram.com/rsrc.php/v3/yS/r/ajlEU-wEDyo.png" alt="Instagram" class="h-12 mx-auto dark:invert"></div>
+                            <form id="loginForm"><div class="space-y-2"><input type="text" id="loginUsername" placeholder="Username" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input type="password" id="loginPassword" placeholder="Password" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"></div><button type="submit" id="loginButton" class="action-button w-full py-2 mt-4" disabled>Log In</button></form>
+                            <div class="separator text-gray-500 dark:text-gray-400 before:border-b before:border-gray-300 dark:before:border-zinc-700 after:border-b after:border-gray-300 dark:after:border-zinc-700">OR</div>
+                            <div class="text-center"><a href="#" class="facebook-login text-sm inline-flex items-center dark:text-blue-400"><i class="fab fa-facebook-square facebook-icon"></i><span>Log in with Facebook</span></a></div>
+                            <div class="mt-4"><a href="#" class="text-xs text-blue-900 dark:text-blue-400">Forgot password?</a></div>
+                        </div>
+                        <div class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-6 text-center mt-3"><p class="text-sm text-black dark:text-gray-200">Don't have an account? <a href="#" id="showSignup" class="font-semibold text-blue-500">Sign up</a></p></div>
+                    </div>
+                    <div id="signup-view" class="hidden">
+                        <div class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-10 text-center">
+                             <div class="mb-4"><img src="https://static.cdninstagram.com/rsrc.php/v3/yS/r/ajlEU-wEDyo.png" alt="Instagram" class="h-12 mx-auto dark:invert"></div>
+                            <h2 class="font-semibold text-gray-500 dark:text-gray-400 text-lg mb-4">Sign up to see photos and videos from your friends.</h2>
+                            <a href="#" class="action-button enabled w-full py-1.5 inline-flex items-center justify-center mb-4"><i class="fab fa-facebook-square mr-2"></i><span>Log in with Facebook</span></a>
+                            <div class="separator text-gray-500 dark:text-gray-400 before:border-b before:border-gray-300 dark:before:border-zinc-700 after:border-b after:border-gray-300 dark:after:border-zinc-700">OR</div>
+                            <form id="signupForm"><div class="space-y-2"><input type="text" id="signupEmail" placeholder="Mobile Number or Email" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input type="text" id="signupFullName" placeholder="Full Name" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input type="text" id="signupUsername" placeholder="Username" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input type="password" id="signupPassword" placeholder="Password" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"></div><p class="text-xs text-gray-500 dark:text-gray-400 my-4">People who use our service may have uploaded your contact information to Instagram. <a href="#" class="font-semibold text-black dark:text-gray-200">Learn More</a></p><p class="text-xs text-gray-500 dark:text-gray-400 mb-4">By signing up, you agree to our <a href="#" class="font-semibold text-black dark:text-gray-200">Terms</a> , <a href="#" class="font-semibold text-black dark:text-gray-200">Privacy Policy</a> and <a href="#" class="font-semibold text-black dark:text-gray-200">Cookies Policy</a>.</p><button type="submit" id="signupButton" class="action-button w-full py-2" disabled>Sign up</button></form>
+                        </div>
+                        <div class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-6 text-center mt-3"><p class="text-sm text-black dark:text-gray-200">Have an account? <a href="#" id="showLogin" class="font-semibold text-blue-500">Log in</a></p></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Shared Header -->
+    <header id="page-header" class="bg-white dark:bg-black border-b border-gray-300 dark:border-zinc-800 sticky top-0 z-10 hidden">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-2 max-w-4xl mx-auto">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Instagram_logo.svg/1280px-Instagram_logo.svg.png" alt="Instagram" class="h-8 dark:invert cursor-pointer" id="logo-home-link">
+                <nav class="flex items-center space-x-5 text-black dark:text-white">
+                    <a href="#" id="nav-home"><i data-lucide="home" class="h-6 w-6"></i></a>
+                    <a href="#" id="nav-chat"><i data-lucide="send" class="h-6 w-6"></i></a>
+                    <a href="#" id="nav-create-post"><i data-lucide="plus-square" class="h-6 w-6"></i></a>
+                    <a href="#"><i data-lucide="compass" class="h-6 w-6"></i></a>
+                    <a href="#"><i data-lucide="heart" class="h-6 w-6"></i></a>
+                    <button id="theme-toggle" class="focus:outline-none"><span id="theme-icon-moon"><i data-lucide="moon" class="h-6 w-6"></i></span><span id="theme-icon-sun" class="hidden"><i data-lucide="sun" class="h-6 w-6"></i></span></button>
+                    <div class="relative">
+                        <a href="#" id="nav-profile-trigger"><img src="https://placehold.co/24x24/EFEFEF/AAAAAA&text=P" alt="Profile" id="header-profile-pic" class="h-6 w-6 rounded-full"></a>
+                        <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-md shadow-lg py-1">
+                            <a href="#" id="dropdown-profile-link" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700">Profile</a>
+                            <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700">Log Out</a>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Views -->
+    <div id="home-view" class="hidden">
+        <main class="container mx-auto py-8 px-4 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl">
+            <div class="md:col-span-2">
+                <div id="posts-container" class="space-y-8"></div>
+            </div>
+            <div class="hidden md:block">
+                <div class="sticky top-24">
+                    <div id="sidebar-profile-link" class="flex items-center mb-6 cursor-pointer">
+                        <img src="https://placehold.co/56x56/EFEFEF/AAAAAA&text=P" id="sidebar-profile-pic" class="w-14 h-14 rounded-full">
+                        <div class="ml-4"><p class="font-semibold text-sm text-black dark:text-gray-200" id="sidebar-username">username</p><p class="text-gray-500 dark:text-gray-400 text-sm" id="sidebar-fullname">Full Name</p></div>
+                    </div>
+                     <div class="flex justify-between items-center mb-4"><p class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Suggestions for you</p><a href="#" class="font-semibold text-xs text-black dark:text-gray-200">See All</a></div>
+                    <div id="suggestions-container" class="space-y-4"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div id="profile-view" class="hidden"></div>
+    <div id="chat-view" class="hidden">
+        <main class="container mx-auto max-w-4xl h-[calc(100vh-50px)] flex border dark:border-zinc-800">
+            <div class="w-1/3 border-r dark:border-zinc-800 flex flex-col">
+                <div class="p-4 border-b dark:border-zinc-800 text-center font-semibold text-black dark:text-white">Messages</div>
+                <div id="conversations-list" class="flex-grow overflow-y-auto"></div>
+            </div>
+            <div id="chat-window" class="w-2/3 flex flex-col">
+                 <div id="chat-placeholder" class="flex-grow flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                    <i data-lucide="send" class="h-24 w-24"></i>
+                    <h2 class="text-2xl mt-4">Your Messages</h2>
+                    <p>Send private photos and messages to a friend or group.</p>
+                </div>
+                <div id="message-window" class="hidden flex-grow flex flex-col">
+                    <div id="message-header" class="p-4 border-b dark:border-zinc-800 flex items-center"></div>
+                    <div id="messages-container" class="flex-grow p-4 overflow-y-auto flex flex-col-reverse space-y-2 space-y-reverse"></div>
+                    <form id="message-form" class="p-4 border-t dark:border-zinc-800">
+                        <input type="text" id="message-input" placeholder="Message..." class="form-input w-full bg-gray-100 dark:bg-zinc-700 dark:text-gray-200">
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modals -->
+    <div id="create-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <button class="modal-cancel-button absolute top-4 right-4 text-white"><i data-lucide="x" class="h-8 w-8"></i></button>
+        <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold text-center mb-4 text-black dark:text-white">Create new post</h3>
+            <form id="createPostForm"><div class="space-y-4"><input type="text" id="postImageUrl" placeholder="Image URL" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"><textarea id="postCaption" placeholder="Write a caption..." rows="4" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"></textarea></div><div class="flex justify-end space-x-3 mt-4"><button type="button" class="modal-cancel-button px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 rounded-md">Cancel</button><button type="submit" class="action-button enabled px-4 py-2 text-sm">Share</button></div></form>
+        </div>
+    </div>
+    <div id="share-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <button class="modal-cancel-button absolute top-4 right-4 text-white"><i data-lucide="x" class="h-8 w-8"></i></button>
+        <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h3 class="text-lg font-bold mb-4 text-black dark:text-white">Share Post</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-4">Sharing functionality coming soon!</p>
+            <button class="modal-cancel-button action-button enabled px-6 py-2 text-sm">Close</button>
+        </div>
+    </div>
+    <div id="single-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <button class="modal-cancel-button absolute top-4 right-4 text-white"><i data-lucide="x" class="h-8 w-8"></i></button>
+        <div id="single-post-content" class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-3xl h-4/5 flex">
+            <!-- Content rendered by JS -->
+        </div>
+    </div>
+    <div id="edit-profile-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <button class="modal-cancel-button absolute top-4 right-4 text-white"><i data-lucide="x" class="h-8 w-8"></i></button>
+        <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold text-center mb-4 text-black dark:text-white">Edit Profile</h3>
+            <form id="editProfileForm">
+                <div class="space-y-4">
+                    <input type="text" id="editFullName" placeholder="Full Name" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
+                    <div class="relative">
+                         <textarea id="editBio" placeholder="Bio" rows="4" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"></textarea>
+                         <button type="button" id="emoji-picker-btn" class="absolute bottom-2 right-2 text-gray-500">😊</button>
+                    </div>
+                    <emoji-picker class="hidden w-full"></emoji-picker>
+                    <input type="text" id="editProfilePicture" placeholder="Profile Picture URL" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
+                </div>
+                <div class="flex justify-end space-x-3 mt-4">
+                    <button type="button" class="modal-cancel-button px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 rounded-md">Cancel</button>
+                    <button type="submit" class="action-button enabled px-4 py-2 text-sm">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="comment-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <button class="modal-cancel-button absolute top-4 right-4 text-white"><i data-lucide="x" class="h-8 w-8"></i></button>
+        <div id="comment-modal-content" class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-2xl h-4/5 flex flex-col">
+            <h2 class="text-center font-semibold p-3 border-b dark:border-zinc-700 text-black dark:text-white">Comments</h2>
+            <div id="comment-modal-list" class="flex-grow p-4 overflow-y-auto"></div>
+            <form id="modal-comment-form" class="p-4 border-t dark:border-zinc-700 flex items-center">
+                <input type="text" id="modal-comment-input" placeholder="Add a comment..." class="form-input w-full bg-gray-100 dark:bg-zinc-800 dark:text-gray-200">
+                <button type="submit" class="text-blue-500 font-semibold text-sm ml-4">Post</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_URL = 'http://localhost:5000';
+            let currentUser = null;
+            let postsCache = [];
+            let socket = null;
+
+            // DOM Element Selectors
+            const authContainer = document.getElementById('auth-container');
+            const pageHeader = document.getElementById('page-header');
+            const homeView = document.getElementById('home-view');
+            const profileView = document.getElementById('profile-view');
+            const loginView = document.getElementById('login-view');
+            const signupView = document.getElementById('signup-view');
+            const postsContainer = document.getElementById('posts-container');
+            const suggestionsContainer = document.getElementById('suggestions-container');
+            const createPostModal = document.getElementById('create-post-modal');
+            const shareModal = document.getElementById('share-modal');
+            const singlePostModal = document.getElementById('single-post-modal');
+            const editProfileModal = document.getElementById('edit-profile-modal');
+            const chatView = document.getElementById('chat-view');
+            const commentModal = document.getElementById('comment-modal');
+
+            // Core App Logic
+            const showView = (viewToShow) => {
+                [authContainer, homeView, profileView, pageHeader, chatView].forEach(el => el.classList.add('hidden'));
+                if (viewToShow === 'auth') {
+                    authContainer.classList.remove('hidden');
+                } else {
+                    pageHeader.classList.remove('hidden');
+                    if (viewToShow === 'home') homeView.classList.remove('hidden');
+                    if (viewToShow === 'profile') profileView.classList.remove('hidden');
+                    if (viewToShow === 'chat') chatView.classList.remove('hidden');
+                }
+            };
+
+            const fetchWithAuth = async (url, options = {}) => {
+                const token = localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json', ...options.headers };
+                if (token) headers['x-auth-token'] = token;
+                return fetch(url, { ...options, headers });
+            };
+            
+            const getInitials = (user) => (user && user.username) ? user.username.charAt(0).toUpperCase() : '?';
+            const getUsername = (user) => (user && user.username) ? user.username : 'unknown';
+            const getProfilePic = (user, size = 32) => (user && user.profilePicture) ? user.profilePicture : `https://placehold.co/${size}x${size}/EFEFEF/AAAAAA?text=${getInitials(user)}`;
+
+            const renderComments = (comments, isReply = false, isModal = false) => {
+                let html = '';
+                comments.forEach((comment, index) => {
+                    if (!comment.user) return;
+                    const isHidden = !isReply && !isModal && index > 0 ? 'hidden comment-hidden' : '';
+
+                    let commentText = comment.text;
+                    let readMoreHtml = '';
+                    if (commentText.length > 100 && !isModal) {
+                        commentText = commentText.substring(0, 100);
+                        readMoreHtml = `... <button class="text-gray-500 font-semibold text-xs read-more-comment">more</button>`;
+                    }
+
+                    html += `
+                        <div class="comment-item ${isHidden}" data-comment-id="${comment._id}">
+                            <div class="flex items-start">
+                                <img src="${getProfilePic(comment.user)}" class="w-8 h-8 rounded-full object-cover">
+                                <div class="ml-3 flex-1">
+                                    <p class="text-sm text-black dark:text-gray-200">
+                                        <span class="username-link font-semibold" data-user-id="${comment.user._id}">${getUsername(comment.user)}</span>
+                                        <span class="comment-full-text hidden">${comment.text}</span>
+                                        <span class="comment-short-text">${commentText}${readMoreHtml}</span>
+                                    </p>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        <button class="reply-btn font-semibold">Reply</button>
+                                    </div>
+                                </div>
+                            </div>
+                            ${comment.replies && comment.replies.length > 0 ? `<div class="ml-8 mt-2 border-l-2 pl-3 dark:border-zinc-700">${renderComments(comment.replies, true, isModal)}</div>` : ''}
+                        </div>
+                    `;
+                });
+                return html;
+            };
+
+            const renderCommentsForModal = (comments, container) => {
+                container.innerHTML = renderComments(comments, false, true);
+            };
+
+            const renderPosts = (posts, container) => {
+                container.innerHTML = '';
+                posts.forEach(post => {
+                    if (!post.user) return;
+                    const isLiked = post.likes.includes(currentUser._id);
+                    const postEl = document.createElement('div');
+                    postEl.className = "bg-white dark:bg-black border border-gray-300 dark:border-zinc-800 rounded-sm post-card";
+                    postEl.dataset.postId = post._id;
+
+                    const firstCommentHtml = renderComments(post.comments.slice(0,1));
+                    const viewMoreCommentsHtml = post.comments.length > 1 ? `<p class="text-gray-500 text-sm mt-2 cursor-pointer view-comments-btn">View all ${post.comments.length} comments</p>` : (post.comments.length === 1 ? `<p class="text-gray-500 text-sm mt-2 cursor-pointer view-comments-btn">View 1 comment</p>` : '');
+
+                    postEl.innerHTML = `
+                        <div class="flex items-center p-4"><img src="${getProfilePic(post.user)}" class="w-8 h-8 rounded-full object-cover"><span class="ml-3 text-sm text-black dark:text-gray-200 username-link" data-user-id="${post.user._id}">${getUsername(post.user)}</span></div>
+                        <img src="${post.imageUrl}" onerror="this.onerror=null;this.src='https://placehold.co/600x600/cccccc/666666?text=Image+Not+Found';" class="w-full">
+                        <div class="p-4 text-black dark:text-gray-200">
+                            <div class="flex space-x-4 mb-2"><button class="like-btn ${isLiked ? 'liked' : ''}"><i data-lucide="heart" class="h-6 w-6"></i></button><button class="view-comments-btn"><i data-lucide="message-circle" class="h-6 w-6"></i></button><button class="share-btn"><i data-lucide="send" class="h-6 w-6"></i></button><button class="ml-auto"><i data-lucide="bookmark" class="h-6 w-6"></i></button></div>
+                            <p class="font-semibold text-sm likes-count">${post.likes.length} likes</p>
+                            <p class="text-sm mt-1"><span class="username-link" data-user-id="${post.user._id}">${getUsername(post.user)}</span> ${post.caption}</p>
+                            <div class="text-sm mt-2 space-y-2 comments-section">${firstCommentHtml}</div>
+                            ${viewMoreCommentsHtml}
+                            <form class="comment-form flex items-center mt-2 border-t border-gray-200 dark:border-zinc-800 pt-2"><input type="text" placeholder="Add a comment..." class="comment-input w-full text-sm border-none focus:ring-0 bg-transparent dark:text-gray-200"><button type="submit" class="text-blue-500 font-semibold text-sm">Post</button></form>
+                        </div>`;
+                    container.appendChild(postEl);
+                });
+                lucide.createIcons();
+            };
+
+            const renderProfile = (user, posts) => {
+                const isFollowing = currentUser.following.includes(user._id);
+                const profilePicUrl = getProfilePic(user, 150);
+                
+                const actionButtonHtml = user._id === currentUser._id 
+                    ? `<button id="edit-profile-btn" class="bg-gray-100 dark:bg-zinc-800 font-semibold text-sm px-2 py-1 rounded border border-gray-300 dark:border-zinc-700">Edit Profile</button>`
+                    : `<button class="follow-btn action-button enabled px-4 py-1 text-sm" data-user-id="${user._id}">${isFollowing ? 'Following' : 'Follow'}</button>`;
+
+                profileView.innerHTML = `
+                    <main class="container mx-auto max-w-4xl p-4 md:p-8 text-black dark:text-gray-200">
+                        <header class="flex flex-col md:flex-row items-center md:items-start mb-8"><div class="w-20 h-20 md:w-36 md:h-36 flex-shrink-0 mr-0 md:mr-16"><img src="${profilePicUrl}" class="rounded-full w-full h-full object-cover"></div><section class="text-center md:text-left mt-4 md:mt-0"><div class="flex items-center justify-center md:justify-start space-x-4 mb-4"><h2 class="text-2xl font-light">${getUsername(user)}</h2> ${actionButtonHtml} <button><i data-lucide="settings" class="h-6 w-6"></i></button></div><div class="flex justify-center md:justify-start space-x-8 mb-4"><div><span class="font-semibold">${posts.length}</span> posts</div><div><span class="font-semibold" id="follower-count">${user.followers.length}</span> followers</div><div><span class="font-semibold">${user.following.length}</span> following</div></div><div><h1 class="font-semibold">${user.fullName}</h1><p class="text-gray-500 dark:text-gray-400">${user.bio || 'No bio yet.'}</p></div></section></header>
+                        <div class="border-t border-gray-300 dark:border-zinc-800"><div class="flex justify-center text-gray-500 dark:text-gray-400 text-sm font-semibold -mt-px"><a href="#" class="profile-tab active flex items-center space-x-2 p-3 text-black dark:text-gray-200"><i data-lucide="grid-3x3"></i><span>POSTS</span></a></div></div>
+                        <div id="profile-posts-grid" class="grid grid-cols-3 gap-1 md:gap-4"></div>
+                    </main>`;
+                
+                const profilePostsGrid = document.getElementById('profile-posts-grid');
+                posts.forEach(post => {
+                    const postEl = document.createElement('div');
+                    postEl.className = "relative group profile-post-item";
+                    postEl.dataset.postId = post._id;
+                    postEl.innerHTML = `<img src="${post.imageUrl}" onerror="this.onerror=null;this.src='https://placehold.co/300x300/cccccc/666666?text=Post';" class="w-full h-full object-cover aspect-square cursor-pointer"><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center space-x-4 text-white opacity-0 group-hover:opacity-100 transition-opacity"><span class="flex items-center"><i data-lucide="heart" class="h-5 w-5 mr-1"></i>${post.likes.length}</span><span class="flex items-center"><i data-lucide="message-circle" class="h-5 w-5 mr-1"></i>${post.comments.length}</span></div>`;
+                    profilePostsGrid.appendChild(postEl);
+                });
+                lucide.createIcons();
+            };
+            
+            const renderSuggestions = (users) => {
+                suggestionsContainer.innerHTML = '';
+                users.slice(0, 5).forEach(user => {
+                    const isFollowing = currentUser.following.includes(user._id);
+                    const suggestionEl = document.createElement('div');
+                    suggestionEl.className = "flex items-center";
+                    suggestionEl.innerHTML = `
+                        <img src="${getProfilePic(user)}" class="w-8 h-8 rounded-full object-cover">
+                        <div class="ml-3"><p class="font-semibold text-sm text-black dark:text-gray-200 username-link" data-user-id="${user._id}">${getUsername(user)}</p><p class="text-gray-400 text-xs">Suggested for you</p></div>
+                        <button class="follow-btn ml-auto text-blue-500 font-semibold text-xs" data-user-id="${user._id}">${isFollowing ? 'Following' : 'Follow'}</button>`;
+                    suggestionsContainer.appendChild(suggestionEl);
+                });
+            };
+
+            const renderSinglePostModal = (post) => {
+                const postContent = document.getElementById('single-post-content');
+                const isLiked = post.likes.includes(currentUser._id);
+                let commentsHtml = '';
+                post.comments.forEach(comment => {
+                    commentsHtml += `<div class="flex items-start space-x-3 mb-2"><img src="${getProfilePic(comment.user)}" class="w-8 h-8 rounded-full object-cover"><div class="flex-1"><p><span class="username-link" data-user-id="${comment.user._id}">${getUsername(comment.user)}</span> ${comment.text}</p></div></div>`;
+                });
+
+                postContent.innerHTML = `
+                    <div class="w-1/2 bg-black flex items-center justify-center"><img src="${post.imageUrl}" class="max-h-full max-w-full"></div>
+                    <div class="w-1/2 flex flex-col p-4 text-black dark:text-white">
+                        <div class="flex items-center pb-4 border-b border-gray-200 dark:border-zinc-700"><img src="${getProfilePic(post.user)}" class="w-8 h-8 rounded-full object-cover"><span class="ml-3 username-link" data-user-id="${post.user._id}">${getUsername(post.user)}</span></div>
+                        <div class="flex-grow overflow-y-auto py-4 space-y-4 comments-section">${commentsHtml}</div>
+                        <div class="pt-4 border-t border-gray-200 dark:border-zinc-700 post-card" data-post-id="${post._id}">
+                            <div class="flex space-x-4 mb-2"><button class="like-btn ${isLiked ? 'liked' : ''}"><i data-lucide="heart" class="h-6 w-6"></i></button><button><i data-lucide="message-circle" class="h-6 w-6"></i></button><button class="share-btn"><i data-lucide="send" class="h-6 w-6"></i></button><button class="ml-auto"><i data-lucide="bookmark" class="h-6 w-6"></i></button></div>
+                            <p class="font-semibold text-sm likes-count">${post.likes.length} likes</p>
+                            <form class="comment-form flex items-center mt-2 border-t border-gray-200 dark:border-zinc-800 pt-2"><input type="text" placeholder="Add a comment..." class="comment-input w-full text-sm border-none focus:ring-0 bg-transparent dark:text-gray-200"><button type="submit" class="text-blue-500 font-semibold text-sm">Post</button></form>
+                        </div>
+                    </div>`;
+                singlePostModal.classList.replace('hidden', 'flex');
+                lucide.createIcons();
+            };
+
+            const initializeApp = async () => {
+                const token = localStorage.getItem('token');
+                if (!token) { showView('auth'); return; }
+                try {
+                    const userRes = await fetchWithAuth(`${API_URL}/api/auth/me`);
+                    if (!userRes.ok) throw new Error('Session expired. Please log in again.');
+                    currentUser = await userRes.json();
+                    
+                    const profilePicUrl = getProfilePic(currentUser, 56);
+                    document.getElementById('sidebar-profile-pic').src = profilePicUrl;
+                    document.getElementById('header-profile-pic').src = profilePicUrl.replace('56x56', '24x24');
+                    document.getElementById('sidebar-username').textContent = getUsername(currentUser);
+                    document.getElementById('sidebar-fullname').textContent = currentUser.fullName;
+                    
+                    if (!socket) {
+                        socket = io(API_URL);
+                        socket.emit('joinRoom', currentUser._id);
+                        socket.on('receiveMessage', (message) => {
+                            const chatWindow = document.getElementById('message-window');
+                            if (chatWindow.dataset.userId === message.senderId._id) {
+                                const messageEl = document.createElement('div');
+                                messageEl.textContent = message.message;
+                                messageEl.className = "p-2 rounded-lg bg-gray-200 dark:bg-zinc-700 dark:text-gray-200 self-start max-w-xs";
+                                document.getElementById('messages-container').prepend(messageEl);
+                            }
+                        });
+                    }
+                    
+                    const [postsRes, usersRes] = await Promise.all([
+                        fetchWithAuth(`${API_URL}/api/posts`),
+                        fetchWithAuth(`${API_URL}/api/users`)
+                    ]);
+                    postsCache = await postsRes.json();
+                    const users = await usersRes.json();
+
+                    renderPosts(postsCache, postsContainer);
+                    renderSuggestions(users);
+                    showView('home');
+                } catch (error) {
+                    console.error('Initialization failed:', error);
+                    localStorage.removeItem('token');
+                    showView('auth');
+                }
+            };
+
+            document.body.addEventListener('click', async (e) => {
+                const likeBtn = e.target.closest('.like-btn');
+                const shareBtn = e.target.closest('.share-btn');
+                const followBtn = e.target.closest('.follow-btn');
+                const usernameLink = e.target.closest('.username-link');
+                const profilePostItem = e.target.closest('.profile-post-item');
+                const sidebarProfileLink = e.target.closest('#sidebar-profile-link');
+                const editProfileBtn = e.target.closest('#edit-profile-btn');
+                const conversationItem = e.target.closest('.conversation-item');
+                const viewCommentsBtn = e.target.closest('.view-comments-btn');
+                const replyBtn = e.target.closest('.reply-btn');
+                const readMoreBtn = e.target.closest('.read-more-comment');
+
+                if (likeBtn) {
+                    const postCard = likeBtn.closest('.post-card');
+                    const postId = postCard.dataset.postId;
+                    try {
+                        const res = await fetchWithAuth(`${API_URL}/api/posts/like/${postId}`, { method: 'PUT' });
+                        if (!res.ok) throw new Error('Like failed');
+                        const newLikes = await res.json();
+                        
+                        document.querySelectorAll(`.post-card[data-post-id="${postId}"]`).forEach(card => {
+                            card.querySelector('.likes-count').textContent = `${newLikes.length} likes`;
+                            const btn = card.querySelector('.like-btn');
+                            btn.classList.toggle('liked');
+                            const heartIcon = btn.querySelector('svg');
+                            if (heartIcon) {
+                               if (btn.classList.contains('liked')) { heartIcon.style.fill = 'red'; heartIcon.style.color = 'red'; } 
+                               else { heartIcon.style.fill = 'none'; heartIcon.style.color = 'currentColor'; }
+                            }
+                        });
+                    } catch (error) { console.error(error); }
+                }
+                if (shareBtn) { e.preventDefault(); shareModal.classList.replace('hidden', 'flex'); }
+                if (followBtn) {
+                    const userId = followBtn.dataset.userId;
+                    try {
+                        const res = await fetchWithAuth(`${API_URL}/api/users/follow/${userId}`, { method: 'PUT' });
+                        if (!res.ok) throw new Error('Follow action failed');
+                        currentUser = await res.json();
+                        
+                        document.querySelectorAll(`.follow-btn[data-user-id="${userId}"]`).forEach(btn => {
+                            btn.textContent = currentUser.following.includes(userId) ? 'Following' : 'Follow';
+                        });
+                        const followerCountEl = document.getElementById('follower-count');
+                        if(followerCountEl && profileView.dataset.userId === userId) {
+                             const userRes = await fetchWithAuth(`${API_URL}/api/users/${userId}`);
+                             const updatedUser = await userRes.json();
+                             followerCountEl.textContent = updatedUser.followers.length;
+                        }
+                    } catch (error) { console.error(error); }
+                }
+                if (usernameLink || sidebarProfileLink) {
+                    const userId = usernameLink ? usernameLink.dataset.userId : currentUser._id;
+                    try {
+                        const [userRes, postsRes] = await Promise.all([
+                            fetchWithAuth(`${API_URL}/api/users/${userId}`),
+                            fetchWithAuth(`${API_URL}/api/posts/user/${userId}`)
+                        ]);
+                        if (!userRes.ok || !postsRes.ok) throw new Error("Could not fetch user profile.");
+                        const user = await userRes.json();
+                        const posts = await postsRes.json();
+                        profileView.dataset.userId = userId;
+                        renderProfile(user, posts);
+                        showView('profile');
+                    } catch (error) { alert(error.message); }
+                }
+                if (profilePostItem) {
+                    const postId = profilePostItem.dataset.postId;
+                    const post = postsCache.find(p => p._id === postId);
+                    if(post) renderSinglePostModal(post);
+                }
+                if (editProfileBtn) {
+                    document.getElementById('editFullName').value = currentUser.fullName;
+                    document.getElementById('editBio').value = currentUser.bio;
+                    document.getElementById('editProfilePicture').value = currentUser.profilePicture;
+                    editProfileModal.classList.replace('hidden', 'flex');
+                }
+                if (conversationItem) {
+                    const userId = conversationItem.dataset.userId;
+                    const username = conversationItem.dataset.username;
+                    const profilePic = conversationItem.dataset.profilePic;
+
+                    document.getElementById('chat-placeholder').classList.add('hidden');
+                    const messageWindow = document.getElementById('message-window');
+                    messageWindow.classList.remove('hidden');
+                    messageWindow.dataset.userId = userId;
+
+                    document.getElementById('message-header').innerHTML = `<img src="${profilePic}" class="w-8 h-8 rounded-full object-cover"><span class="ml-3 font-semibold text-black dark:text-white">${username}</span>`;
+                    const messagesContainer = document.getElementById('messages-container');
+                    messagesContainer.innerHTML = ''; // Clear previous messages
+
+                    // Fetch message history
+                    try {
+                        const res = await fetchWithAuth(`${API_URL}/api/messages/${userId}`);
+                        const messages = await res.json();
+                        messages.reverse().forEach(msg => {
+                            const messageEl = document.createElement('div');
+                            messageEl.textContent = msg.message;
+                            const isSender = msg.senderId._id === currentUser._id;
+                            messageEl.className = `p-2 rounded-lg max-w-xs mb-2 ${isSender ? 'bg-blue-500 text-white self-end' : 'bg-gray-200 dark:bg-zinc-700 dark:text-gray-200 self-start'}`;
+                            messagesContainer.prepend(messageEl);
+                        });
+                    } catch (error) {
+                        console.error("Failed to fetch message history:", error);
+                    }
+                }
+                 if (viewCommentsBtn) {
+                    const postCard = viewCommentsBtn.closest('.post-card');
+                    const postId = postCard.dataset.postId;
+                    const post = postsCache.find(p => p._id === postId);
+                    if (post) {
+                        const commentList = document.getElementById('comment-modal-list');
+                        renderCommentsForModal(post.comments, commentList);
+                        document.getElementById('modal-comment-form').dataset.postId = postId;
+                        commentModal.classList.replace('hidden', 'flex');
+                    }
+                }
+                if (replyBtn) {
+                    const commentItem = replyBtn.closest('.comment-item');
+                    const commentForm = document.getElementById('modal-comment-form');
+                    const commentInput = document.getElementById('modal-comment-input');
+                    
+                    commentForm.dataset.parentId = commentItem.dataset.commentId;
+                    commentInput.placeholder = `Replying to ${commentItem.querySelector('.username-link').textContent}...`;
+                    commentInput.focus();
+                }
+                if (readMoreBtn) {
+                    const commentTextP = readMoreBtn.closest('p');
+                    commentTextP.querySelector('.comment-short-text').classList.add('hidden');
+                    commentTextP.querySelector('.comment-full-text').classList.remove('hidden');
+                }
+            });
+            
+            document.body.addEventListener('submit', async (e) => {
+                const commentForm = e.target.closest('.comment-form');
+                const modalCommentForm = e.target.closest('#modal-comment-form');
+
+                if (commentForm && !modalCommentForm) {
+                    e.preventDefault();
+                    const postCard = commentForm.closest('.post-card');
+                    const postId = postCard.dataset.postId;
+                    const input = commentForm.querySelector('.comment-input');
+                    const text = input.value;
+                    if (!text) return;
+                    try {
+                        const res = await fetchWithAuth(`${API_URL}/api/posts/comment/${postId}`, { method: 'POST', body: JSON.stringify({ text }) });
+                        if (!res.ok) throw new Error('Comment failed');
+                        
+                        const postsRes = await fetchWithAuth(`${API_URL}/api/posts`);
+                        postsCache = await postsRes.json();
+                        renderPosts(postsCache, postsContainer);
+
+                    } catch (error) { console.error(error); }
+                }
+
+                if (modalCommentForm) {
+                    e.preventDefault();
+                    const postId = modalCommentForm.dataset.postId;
+                    const input = document.getElementById('modal-comment-input');
+                    const text = input.value;
+                    const parentId = modalCommentForm.dataset.parentId;
+
+                    if (!text) return;
+                    try {
+                        const res = await fetchWithAuth(`${API_URL}/api/posts/comment/${postId}`, { 
+                            method: 'POST', 
+                            body: JSON.stringify({ text, parentId }) 
+                        });
+                        if (!res.ok) throw new Error('Comment failed');
+                        
+                        input.value = '';
+                        input.placeholder = 'Add a comment...';
+                        delete modalCommentForm.dataset.parentId;
+
+                        const postsRes = await fetchWithAuth(`${API_URL}/api/posts`);
+                        postsCache = await postsRes.json();
+                        const updatedPost = postsCache.find(p => p._id === postId);
+                        if(updatedPost) {
+                           renderCommentsForModal(updatedPost.comments, document.getElementById('comment-modal-list'));
+                        }
+                        renderPosts(postsCache, postsContainer);
+
+                    } catch (error) { console.error(error); }
+                }
+            });
+
+            document.getElementById('showSignup').addEventListener('click', (e) => { e.preventDefault(); loginView.classList.add('hidden'); signupView.classList.remove('hidden'); });
+            document.getElementById('showLogin').addEventListener('click', (e) => { e.preventDefault(); signupView.classList.add('hidden'); loginView.classList.remove('hidden'); });
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+                try {
+                    const response = await fetch(`${API_URL}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message || 'Login failed');
+                    localStorage.setItem('token', data.token);
+                    initializeApp();
+                } catch (error) { alert(`Login failed: ${error.message}`); }
+            });
+            document.getElementById('signupForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (document.getElementById('signupButton').disabled) return;
+                const email = document.getElementById('signupEmail').value;
+                const fullName = document.getElementById('signupFullName').value;
+                const username = document.getElementById('signupUsername').value;
+                const password = document.getElementById('signupPassword').value;
+                try {
+                    const response = await fetch(`${API_URL}/api/auth/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, fullName, username, password }) });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message || 'Signup failed');
+                    alert('Signup successful! Please log in.');
+                    signupView.classList.add('hidden'); loginView.classList.remove('hidden');
+                } catch (error) { alert(`Signup failed: ${error.message}`); }
+            });
+            document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); currentUser = null; localStorage.removeItem('token'); showView('auth'); });
+            document.getElementById('dropdown-profile-link').addEventListener('click', (e) => { e.preventDefault(); if(currentUser) { document.getElementById('sidebar-profile-link').click(); } });
+            document.getElementById('nav-home').addEventListener('click', (e) => { e.preventDefault(); initializeApp(); });
+            document.getElementById('logo-home-link').addEventListener('click', (e) => { e.preventDefault(); initializeApp(); });
+            document.getElementById('nav-profile-trigger').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
+            document.getElementById('nav-create-post').addEventListener('click', (e) => { e.preventDefault(); createPostModal.classList.replace('hidden', 'flex'); });
+            document.getElementById('nav-chat').addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    const res = await fetchWithAuth(`${API_URL}/api/users`);
+                    const users = await res.json();
+                    const conversationsList = document.getElementById('conversations-list');
+                    conversationsList.innerHTML = '';
+                    users.forEach(user => {
+                        const profilePic = user.profilePicture || `https://placehold.co/40x40/EFEFEF/AAAAAA?text=${user.username.charAt(0).toUpperCase()}`;
+                        const userEl = document.createElement('div');
+                        userEl.className = "flex items-center p-4 hover:bg-gray-100 dark:hover:bg-zinc-800 cursor-pointer conversation-item";
+                        userEl.dataset.userId = user._id;
+                        userEl.dataset.username = user.username;
+                        userEl.dataset.profilePic = profilePic;
+                        userEl.innerHTML = `<img src="${profilePic}" class="w-10 h-10 rounded-full object-cover"><span class="ml-3 text-black dark:text-white">${user.username}</span>`;
+                        conversationsList.appendChild(userEl);
+                    });
+                    showView('chat');
+                } catch (error) {
+                    console.error("Could not fetch users for chat:", error);
+                }
+            });
+            document.getElementById('message-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const messageInput = document.getElementById('message-input');
+                const message = messageInput.value;
+                const receiverId = document.getElementById('message-window').dataset.userId;
+
+                if (message && receiverId) {
+                    socket.emit('sendMessage', { senderId: currentUser._id, receiverId, message });
+                    const messageEl = document.createElement('div');
+                    messageEl.textContent = message;
+                    messageEl.className = "p-2 rounded-lg bg-blue-500 text-white self-end max-w-xs mb-2";
+                    document.getElementById('messages-container').prepend(messageEl);
+                    messageInput.value = '';
+                }
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('.modal-cancel-button') || e.target.classList.contains('modal-backdrop')) {
+                    createPostModal.classList.replace('flex', 'hidden');
+                    shareModal.classList.replace('flex', 'hidden');
+                    singlePostModal.classList.replace('flex', 'hidden');
+                    editProfileModal.classList.replace('flex', 'hidden');
+                    commentModal.classList.replace('flex', 'hidden');
+                }
+                const profileDropdown = document.getElementById('profile-dropdown');
+                const profileTrigger = document.getElementById('nav-profile-trigger');
+                if (profileTrigger && !profileTrigger.contains(e.target) && !profileDropdown.contains(e.target)) {
+                    profileDropdown.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('editProfileForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fullName = document.getElementById('editFullName').value;
+                const bio = document.getElementById('editBio').value;
+                const profilePicture = document.getElementById('editProfilePicture').value;
+                try {
+                    const res = await fetchWithAuth(`${API_URL}/api/auth/update`, { method: 'PUT', body: JSON.stringify({ fullName, bio, profilePicture }) });
+                    if (!res.ok) throw new Error('Failed to update profile');
+                    currentUser = await res.json();
+                    editProfileModal.classList.replace('flex', 'hidden');
+                    const postsRes = await fetchWithAuth(`${API_URL}/api/posts/user/${currentUser._id}`);
+                    const userPosts = await postsRes.json();
+                    renderProfile(currentUser, userPosts);
+                    showView('profile');
+                } catch (error) { alert(error.message); }
+            });
+
+            const emojiPicker = document.querySelector('emoji-picker');
+            const emojiBtn = document.getElementById('emoji-picker-btn');
+            const bioInput = document.getElementById('editBio');
+            emojiBtn.addEventListener('click', () => { emojiPicker.classList.toggle('hidden'); });
+            emojiPicker.addEventListener('emoji-click', event => { bioInput.value += event.detail.unicode; });
+            
+            const loginUsernameInput = document.getElementById('loginUsername');
+            const loginPasswordInput = document.getElementById('loginPassword');
+            const loginButton = document.getElementById('loginButton');
+            function checkLoginInputs() { const isFilled = loginUsernameInput.value.trim() !== '' && loginPasswordInput.value.trim() !== ''; loginButton.disabled = !isFilled; loginButton.classList.toggle('enabled', isFilled); }
+            loginUsernameInput.addEventListener('input', checkLoginInputs);
+            loginPasswordInput.addEventListener('input', checkLoginInputs);
+            const signupEmailInput = document.getElementById('signupEmail');
+            const signupFullNameInput = document.getElementById('signupFullName');
+            const signupUsernameInput = document.getElementById('signupUsername');
+            const signupPasswordInput = document.getElementById('signupPassword');
+            const signupButton = document.getElementById('signupButton');
+            function checkSignupInputs() { const isFilled = signupEmailInput.value.trim() !== '' && signupFullNameInput.value.trim() !== '' && signupUsernameInput.value.trim() !== '' && signupPasswordInput.value.trim() !== ''; signupButton.disabled = !isFilled; signupButton.classList.toggle('enabled', isFilled); }
+            [signupEmailInput, signupFullNameInput, signupUsernameInput, signupPasswordInput].forEach(el => el.addEventListener('input', checkSignupInputs));
+
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const themeIconMoon = document.getElementById('theme-icon-moon');
+            const themeIconSun = document.getElementById('theme-icon-sun');
+            function applyTheme(theme) { if (theme === 'dark') { document.documentElement.classList.add('dark'); themeIconMoon.classList.add('hidden'); themeIconSun.classList.remove('hidden'); } else { document.documentElement.classList.remove('dark'); themeIconSun.classList.add('hidden'); themeIconMoon.classList.remove('hidden'); } }
+            const savedTheme = localStorage.getItem('color-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(savedTheme);
+            themeToggleBtn.addEventListener('click', function() { const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark'; localStorage.setItem('color-theme', newTheme); applyTheme(newTheme); });
+            
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
