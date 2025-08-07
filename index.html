@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,68 +11,138 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://unpkg.com/pica/dist/pica.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <script>
         tailwind.config = { darkMode: 'class' }
     </script>
-    <script src="https://unpkg.com/pica/dist/pica.min.js"></script>
 </head>
+
 <body class="bg-gray-50 dark:bg-black">
 
     <div id="auth-container">
         <div class="container mx-auto flex justify-center items-center min-h-screen px-4">
             <main class="flex flex-col md:flex-row items-center justify-center w-full max-w-4xl">
-                <div class="hidden md:block md:w-1/2 pr-8"><img src="https://static.cdninstagram.com/rsrc.php/v3/y4/r/ItTndlZM2n2.png" alt="Instagram on Phone" class="h-auto w-full"></div>
+                <div class="hidden md:block md:w-1/2 pr-8"><img
+                        src="https://static.cdninstagram.com/rsrc.php/v3/y4/r/ItTndlZM2n2.png" alt="Instagram on Phone"
+                        class="h-auto w-full"></div>
                 <div class="w-full max-w-sm md:w-1/2">
                     <div id="login-view">
-                        <div class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-10 text-center">
-                            <div class="mb-5"><img src="https://static.cdninstagram.com/rsrc.php/v3/yS/r/ajlEU-wEDyo.png" alt="Instagram" class="h-12 mx-auto dark:invert"></div>
-                            <form id="loginForm"><div class="space-y-2"><input type="text" id="loginUsername" placeholder="Username" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input type="password" id="loginPassword" placeholder="Password" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"></div><button type="submit" id="loginButton" class="action-button w-full py-2 mt-4" disabled>Log In</button></form>
-                            <div class="separator text-gray-500 dark:text-gray-400 before:border-b before:border-gray-300 dark:before:border-zinc-700 after:border-b after:border-gray-300 dark:after:border-zinc-700">OR</div>
-                            <div class="text-center"><a href="#" class="facebook-login text-sm inline-flex items-center dark:text-blue-400"><i class="fab fa-facebook-square facebook-icon"></i><span>Log in with Facebook</span></a></div>
-                            <div class="mt-4"><a href="#" class="text-xs text-blue-900 dark:text-blue-400">Forgot password?</a></div>
+                        <div
+                            class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-10 text-center">
+                            <div class="mb-5"><img
+                                    src="https://static.cdninstagram.com/rsrc.php/v3/yS/r/ajlEU-wEDyo.png"
+                                    alt="Instagram" class="h-12 mx-auto dark:invert"></div>
+                            <form id="loginForm">
+                                <div class="space-y-2"><input type="text" id="loginUsername" placeholder="Username"
+                                        class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input
+                                        type="password" id="loginPassword" placeholder="Password"
+                                        class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500">
+                                </div><button type="submit" id="loginButton" class="action-button w-full py-2 mt-4"
+                                    disabled>Log In</button>
+                            </form>
+                            <div
+                                class="separator text-gray-500 dark:text-gray-400 before:border-b before:border-gray-300 dark:before:border-zinc-700 after:border-b after:border-gray-300 dark:after:border-zinc-700">
+                                OR</div>
+                            <div class="text-center"><a href="#"
+                                    class="facebook-login text-sm inline-flex items-center dark:text-blue-400"><i
+                                        class="fab fa-facebook-square facebook-icon"></i><span>Log in with
+                                        Facebook</span></a></div>
+                            <div class="mt-4"><a href="#" class="text-xs text-blue-900 dark:text-blue-400">Forgot
+                                    password?</a></div>
                         </div>
-                        <div class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-6 text-center mt-3"><p class="text-sm text-black dark:text-gray-200">Don't have an account? <a href="#" id="showSignup" class="font-semibold text-blue-500">Sign up</a></p></div>
+                        <div
+                            class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-6 text-center mt-3">
+                            <p class="text-sm text-black dark:text-gray-200">Don't have an account? <a href="#"
+                                    id="showSignup" class="font-semibold text-blue-500">Sign up</a></p>
+                        </div>
                     </div>
                     <div id="signup-view" class="hidden">
-                        <div class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-10 text-center">
-                             <div class="mb-4"><img src="https://static.cdninstagram.com/rsrc.php/v3/yS/r/ajlEU-wEDyo.png" alt="Instagram" class="h-12 mx-auto dark:invert"></div>
-                            <h2 class="font-semibold text-gray-500 dark:text-gray-400 text-lg mb-4">Sign up to see photos and videos from your friends.</h2>
-                            <a href="#" class="action-button enabled w-full py-1.5 inline-flex items-center justify-center mb-4"><i class="fab fa-facebook-square mr-2"></i><span>Log in with Facebook</span></a>
-                            <div class="separator text-gray-500 dark:text-gray-400 before:border-b before:border-gray-300 dark:before:border-zinc-700 after:border-b after:border-gray-300 dark:after:border-zinc-700">OR</div>
-                            <form id="signupForm"><div class="space-y-2"><input type="text" id="signupEmail" placeholder="Mobile Number or Email" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input type="text" id="signupFullName" placeholder="Full Name" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input type="text" id="signupUsername" placeholder="Username" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input type="password" id="signupPassword" placeholder="Password" class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"></div><p class="text-xs text-gray-500 dark:text-gray-400 my-4">People who use our service may have uploaded your contact information to Instagram. <a href="#" class="font-semibold text-black dark:text-gray-200">Learn More</a></p><p class="text-xs text-gray-500 dark:text-gray-400 mb-4">By signing up, you agree to our <a href="#" class="font-semibold text-black dark:text-gray-200">Terms</a> , <a href="#" class="font-semibold text-black dark:text-gray-200">Privacy Policy</a> and <a href="#" class="font-semibold text-black dark:text-gray-200">Cookies Policy</a>.</p><button type="submit" id="signupButton" class="action-button w-full py-2" disabled>Sign up</button></form>
+                        <div
+                            class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-10 text-center">
+                            <div class="mb-4"><img
+                                    src="https://static.cdninstagram.com/rsrc.php/v3/yS/r/ajlEU-wEDyo.png"
+                                    alt="Instagram" class="h-12 mx-auto dark:invert"></div>
+                            <h2 class="font-semibold text-gray-500 dark:text-gray-400 text-lg mb-4">Sign up to see
+                                photos and videos from your friends.</h2>
+                            <a href="#"
+                                class="action-button enabled w-full py-1.5 inline-flex items-center justify-center mb-4"><i
+                                    class="fab fa-facebook-square mr-2"></i><span>Log in with Facebook</span></a>
+                            <div
+                                class="separator text-gray-500 dark:text-gray-400 before:border-b before:border-gray-300 dark:before:border-zinc-700 after:border-b after:border-gray-300 dark:after:border-zinc-700">
+                                OR</div>
+                            <form id="signupForm">
+                                <div class="space-y-2"><input type="text" id="signupEmail"
+                                        placeholder="Mobile Number or Email"
+                                        class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input
+                                        type="text" id="signupFullName" placeholder="Full Name"
+                                        class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input
+                                        type="text" id="signupUsername" placeholder="Username"
+                                        class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500"><input
+                                        type="password" id="signupPassword" placeholder="Password"
+                                        class="form-input w-full bg-gray-50 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 dark:text-gray-200 focus:border-gray-400 dark:focus:border-zinc-500">
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 my-4">People who use our service may
+                                    have uploaded your contact information to Instagram. <a href="#"
+                                        class="font-semibold text-black dark:text-gray-200">Learn More</a></p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">By signing up, you agree to our
+                                    <a href="#" class="font-semibold text-black dark:text-gray-200">Terms</a> , <a
+                                        href="#" class="font-semibold text-black dark:text-gray-200">Privacy Policy</a>
+                                    and <a href="#" class="font-semibold text-black dark:text-gray-200">Cookies
+                                        Policy</a>.</p><button type="submit" id="signupButton"
+                                    class="action-button w-full py-2" disabled>Sign up</button>
+                            </form>
                         </div>
-                        <div class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-6 text-center mt-3"><p class="text-sm text-black dark:text-gray-200">Have an account? <a href="#" id="showLogin" class="font-semibold text-blue-500">Log in</a></p></div>
+                        <div
+                            class="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-sm p-6 text-center mt-3">
+                            <p class="text-sm text-black dark:text-gray-200">Have an account? <a href="#" id="showLogin"
+                                    class="font-semibold text-blue-500">Log in</a></p>
+                        </div>
                     </div>
                 </div>
             </main>
         </div>
     </div>
     
-    <header id="page-header" class="bg-white dark:bg-black border-b border-gray-300 dark:border-zinc-800 sticky top-0 z-10 hidden">
+    <header id="page-header"
+        class="bg-white dark:bg-black border-b border-gray-300 dark:border-zinc-800 sticky top-0 z-10 hidden">
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center py-2 max-w-4xl mx-auto">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Instagram_logo.svg/1280px-Instagram_logo.svg.png" alt="Instagram" class="h-8 dark:invert cursor-pointer" id="logo-home-link">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Instagram_logo.svg/1280px-Instagram_logo.svg.png"
+                    alt="Instagram" class="h-8 dark:invert cursor-pointer" id="logo-home-link">
                 <div class="relative hidden sm:block">
-                    <input type="text" id="user-search-input" placeholder="Search" class="bg-gray-200 dark:bg-zinc-700 text-black dark:text-white rounded-md pl-10 pr-4 py-1 focus:outline-none focus:ring-2 focus:ring-gray-300 w-64">
-                    <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500"></i>
-                    <div id="user-search-results" class="absolute left-0 right-0 mt-2 bg-white dark:bg-zinc-800 rounded-md shadow-lg hidden max-h-60 overflow-y-auto"></div>
+                    <input type="text" id="user-search-input" placeholder="Search"
+                        class="bg-gray-200 dark:bg-zinc-700 text-black dark:text-white rounded-md pl-10 pr-4 py-1 focus:outline-none focus:ring-2 focus:ring-gray-300 w-64">
+                    <i data-lucide="search"
+                        class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500"></i>
+                    <div id="user-search-results"
+                        class="absolute left-0 right-0 mt-2 bg-white dark:bg-zinc-800 rounded-md shadow-lg hidden max-h-60 overflow-y-auto">
+                    </div>
                 </div>
                 <nav class="flex items-center space-x-5 text-black dark:text-white">
                     <a href="#" id="nav-home"><i data-lucide="home" class="h-6 w-6"></i></a>
                     <a href="#" id="nav-chat" class="relative">
                         <i data-lucide="send" class="h-6 w-6"></i>
-                        <span id="chat-notification-dot" class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center hidden"></span>
+                        <span id="chat-notification-dot"
+                            class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center hidden"></span>
                     </a>
                     <a href="#" id="nav-create-post"><i data-lucide="plus-square" class="h-6 w-6"></i></a>
                     <a href="#"><i data-lucide="compass" class="h-6 w-6"></i></a>
                     <a href="#"><i data-lucide="heart" class="h-6 w-6"></i></a>
-                    <button id="theme-toggle" class="focus:outline-none"><span id="theme-icon-moon"><i data-lucide="moon" class="h-6 w-6"></i></span><span id="theme-icon-sun" class="hidden"><i data-lucide="sun" class="h-6 w-6"></i></span></button>
+                    <a href="#" id="nav-bookmarks-link"><i data-lucide="bookmark" class="h-6 w-6"></i></a>
+                    <button id="theme-toggle" class="focus:outline-none"><span id="theme-icon-moon"><i
+                                data-lucide="moon" class="h-6 w-6"></i></span><span id="theme-icon-sun"
+                            class="hidden"><i data-lucide="sun" class="h-6 w-6"></i></span></button>
                     <div class="relative">
-                        <a href="#" id="nav-profile-trigger"><img src="https://placehold.co/24x24/EFEFEF/AAAAAA&text=P" alt="Profile" id="header-profile-pic" class="h-6 w-6 rounded-full"></a>
-                        <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-md shadow-lg py-1">
-                            <a href="#" id="dropdown-profile-link" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700">Profile</a>
-                            <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700">Log Out</a>
+                        <a href="#" id="nav-profile-trigger"><img src="https://placehold.co/24x24/EFEFEF/AAAAAA&text=P"
+                                alt="Profile" id="header-profile-pic" class="h-6 w-6 rounded-full"></a>
+                        <div id="profile-dropdown"
+                            class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-md shadow-lg py-1">
+                            <a href="#" id="dropdown-profile-link"
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700">Profile</a>
+                            <a href="#" id="logout-button"
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700">Log
+                                Out</a>
                         </div>
                     </div>
                 </nav>
@@ -87,33 +158,46 @@
             <div class="hidden md:block">
                 <div class="sticky top-24">
                     <div id="sidebar-profile-link" class="flex items-center mb-6 cursor-pointer">
-                        <img src="https://placehold.co/56x56/EFEFEF/AAAAAA&text=P" id="sidebar-profile-pic" class="w-14 h-14 rounded-full">
-                        <div class="ml-4"><p class="font-semibold text-sm text-black dark:text-gray-200" id="sidebar-username">username</p><p class="text-gray-500 dark:text-gray-400 text-sm" id="sidebar-fullname">Full Name</p></div>
+                        <img src="https://placehold.co/56x56/EFEFEF/AAAAAA&text=P" id="sidebar-profile-pic"
+                            class="w-14 h-14 rounded-full">
+                        <div class="ml-4">
+                            <p class="font-semibold text-sm text-black dark:text-gray-200" id="sidebar-username">
+                                username</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm" id="sidebar-fullname">Full Name</p>
+                        </div>
                     </div>
-                     <div class="flex justify-between items-center mb-4"><p class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Suggestions for you</p><a href="#" class="font-semibold text-xs text-black dark:text-gray-200">See All</a></div>
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Suggestions for you</p><a
+                            href="#" class="font-semibold text-xs text-black dark:text-gray-200">See All</a>
+                    </div>
                     <div id="suggestions-container" class="space-y-4"></div>
                 </div>
             </div>
         </main>
     </div>
     <div id="profile-view" class="hidden"></div>
+    <div id="bookmarks-view" class="hidden"></div>
     <div id="chat-view" class="hidden">
         <main class="container mx-auto max-w-4xl h-[calc(100vh-50px)] flex border dark:border-zinc-800">
             <div class="w-1/3 border-r dark:border-zinc-800 flex flex-col">
-                <div class="p-4 border-b dark:border-zinc-800 text-center font-semibold text-black dark:text-white">Messages</div>
+                <div class="p-4 border-b dark:border-zinc-800 text-center font-semibold text-black dark:text-white">
+                    Messages</div>
                 <div id="conversations-list" class="flex-grow overflow-y-auto"></div>
             </div>
             <div id="chat-window" class="w-2/3 flex flex-col">
-                 <div id="chat-placeholder" class="flex-grow flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                <div id="chat-placeholder"
+                    class="flex-grow flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
                     <i data-lucide="send" class="h-24 w-24"></i>
                     <h2 class="text-2xl mt-4">Your Messages</h2>
                     <p>Send private photos and messages to a friend or group.</p>
                 </div>
                 <div id="message-window" class="hidden flex-grow flex flex-col overflow-y-scroll no-scrollbar">
                     <div id="message-header" class="p-4 border-b dark:border-zinc-800 flex items-center"></div>
-                    <div id="messages-container" class="flex-grow p-4 overflow-y-auto flex flex-col-reverse space-y-2 space-y-reverse"></div>
+                    <div id="messages-container"
+                        class="flex-grow p-4 overflow-y-auto flex flex-col-reverse space-y-2 space-y-reverse"></div>
                     <form id="message-form" class="p-4 border-t dark:border-zinc-800">
-                        <input type="text" id="message-input" placeholder="Message..." class="form-input w-full bg-gray-100 dark:bg-zinc-800 dark:text-gray-200">
+                        <input type="text" id="message-input" placeholder="Message..."
+                            class="form-input w-full bg-gray-100 dark:bg-zinc-800 dark:text-gray-200">
                     </form>
                 </div>
             </div>
@@ -122,33 +206,34 @@
     
     <div id="create-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-md relative">
-            <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i data-lucide="x" class="h-6 w-6"></i></button>
+            <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i
+                    data-lucide="x" class="h-6 w-6"></i></button>
             <h3 class="text-lg font-bold text-center mb-4 text-black dark:text-white">Create new post</h3>
             <form id="createPostForm">
                 <div class="space-y-4">
-                    <label for="postImageFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload Image</label>
-                    <input type="file" id="postImageFile" accept="image/*" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
+                    <label for="postImageFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload
+                        Image</label>
+                    <input type="file" id="postImageFile" accept="image/*"
+                        class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
                     <div class="relative">
-                         <textarea id="postCaption" placeholder="Write a caption..." rows="4" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"></textarea>
-                         <button type="button" id="create-post-emoji-btn" class="absolute bottom-2 right-2 text-gray-500">😊</button>
+                        <textarea id="postCaption" placeholder="Write a caption..." rows="4"
+                            class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"></textarea>
+                        <button type="button" id="create-post-emoji-btn"
+                            class="absolute bottom-2 right-2 text-gray-500">🙂</button>
                     </div>
                 </div>
                 <emoji-picker id="create-post-emoji-picker" class="hidden"></emoji-picker>
-                <div class="flex justify-end space-x-3 mt-4"><button type="button" class="modal-cancel-button px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 rounded-md">Cancel</button><button type="submit" id="createPostButton" class="action-button enabled px-4 py-2 text-sm">Share</button></div>
+                <div class="flex justify-end space-x-3 mt-4"><button type="button"
+                        class="modal-cancel-button px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 rounded-md">Cancel</button><button
+                        type="submit" id="createPostButton"
+                        class="action-button enabled px-4 py-2 text-sm">Share</button></div>
             </form>
-        </div>
-    </div>
-    <div id="share-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center relative">
-            <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i data-lucide="x" class="h-6 w-6"></i></button>
-            <h3 class="text-lg font-bold mb-4 text-black dark:text-white">Share Post</h3>
-            <p class="text-gray-600 dark:text-gray-300 mb-4">Sharing functionality coming soon!</p>
-            <button class="modal-cancel-button action-button enabled px-6 py-2 text-sm">Close</button>
         </div>
     </div>
 
     <div id="feed-single-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div id="feed-single-post-content" class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-3xl h-4/5 flex relative">
+        <div id="feed-single-post-content"
+            class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-3xl h-4/5 flex relative">
             <button class="feed-modal-close-button absolute top-4 right-4 text-black dark:text-white z-10">
                 <i data-lucide="x" class="h-8 w-8"></i>
             </button>
@@ -156,7 +241,8 @@
         </div>
     </div>
     <div id="profile-single-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div id="profile-single-post-content" class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-3xl h-4/5 flex relative">
+        <div id="profile-single-post-content"
+            class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-3xl h-4/5 flex relative">
         <button class="profile-modal-close-button absolute top-4 right-4 text-black dark:text-white z-10">
             <i data-lucide="x" class="h-8 w-8"></i>
         </button>
@@ -165,21 +251,29 @@
     </div>
     <div id="edit-profile-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-md relative">
-            <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i data-lucide="x" class="h-6 w-6"></i></button>
+            <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i
+                    data-lucide="x" class="h-6 w-6"></i></button>
             <h3 class="text-lg font-bold text-center mb-4 text-black dark:text-white">Edit Profile</h3>
             <form id="editProfileForm">
                 <div class="space-y-4">
-                    <input type="text" id="editFullName" placeholder="Full Name" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
+                    <input type="text" id="editFullName" placeholder="Full Name"
+                        class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
                     <div class="relative">
-                         <textarea id="editBio" placeholder="Bio" rows="4" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"></textarea>
-                         <button type="button" id="emoji-picker-btn" class="absolute bottom-2 right-2 text-gray-500">😊</button>
+                        <textarea id="editBio" placeholder="Bio" rows="4"
+                            class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"></textarea>
+                        <button type="button" id="emoji-picker-btn"
+                            class="absolute bottom-2 right-2 text-gray-500">🙂</button>
                     </div>
                     <emoji-picker class="hidden w-full"></emoji-picker>
-                    <label for="editProfilePictureFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Change Profile Picture</label>
-                    <input type="file" id="editProfilePictureFile" accept="image/*" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
+                    <label for="editProfilePictureFile"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">Change Profile
+                        Picture</label>
+                    <input type="file" id="editProfilePictureFile" accept="image/*"
+                        class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
                 </div>
                 <div class="flex justify-end space-x-3 mt-4">
-                    <button type="button" class="modal-cancel-button px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 rounded-md">Cancel</button>
+                    <button type="button"
+                        class="modal-cancel-button px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 rounded-md">Cancel</button>
                     <button type="submit" class="action-button enabled px-4 py-2 text-sm">Save</button>
                 </div>
             </form>
@@ -188,48 +282,94 @@
     
     <div id="edit-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-md relative">
-            <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i data-lucide="x" class="h-6 w-6"></i></button>
+            <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i
+                    data-lucide="x" class="h-6 w-6"></i></button>
             <h3 class="text-lg font-bold text-center mb-4 text-black dark:text-white">Edit Post</h3>
             <form id="editPostForm">
                 <input type="hidden" id="editPostId">
                 <div class="space-y-4">
-                    <label for="editPostImageFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Change Image</label>
-                    <input type="file" id="editPostImageFile" accept="image/*" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
-                    <textarea id="editPostCaption" placeholder="Edit caption..." rows="4" class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"></textarea>
+                    <label for="editPostImageFile"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300">Change Image</label>
+                    <input type="file" id="editPostImageFile" accept="image/*"
+                        class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
+                    <textarea id="editPostCaption" placeholder="Edit caption..." rows="4"
+                        class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"></textarea>
                 </div>
                 <div class="flex justify-end space-x-3 mt-4">
-                    <button type="button" class="modal-cancel-button px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 rounded-md">Cancel</button>
+                    <button type="button"
+                        class="modal-cancel-button px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 rounded-md">Cancel</button>
                     <button type="submit" class="action-button enabled px-4 py-2 text-sm">Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
     <div id="feed-comment-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div id="feed-comment-modal-content" class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-2xl h-4/5 flex flex-col relative">
-            <button class="feed-comment-modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i data-lucide="x" class="h-6 w-6"></i></button>
-            <h2 class="text-center font-semibold p-3 border-b dark:border-zinc-700 text-black dark:text-white">Comments</h2>
+        <div id="feed-comment-modal-content"
+            class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-2xl h-4/5 flex flex-col relative">
+            <button class="feed-comment-modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i
+                    data-lucide="x" class="h-6 w-6"></i></button>
+            <h2 class="text-center font-semibold p-3 border-b dark:border-zinc-700 text-black dark:text-white">Comments
+            </h2>
             <div id="feed-comment-modal-list" class="flex-grow p-4 overflow-y-auto"></div>
             <form id="feed-modal-comment-form" class="p-4 border-t dark:border-zinc-700 flex items-center relative">
-                <button type="button" id="feed-comment-emoji-picker-btn" class="absolute bottom-5 right-20 text-gray-500">😊</button>
-                <input type="text" id="feed-modal-comment-input" placeholder="Add a comment..." class="form-input w-full bg-gray-100 dark:bg-zinc-800 dark:text-gray-200">
+                <button type="button" id="feed-comment-emoji-picker-btn"
+                    class="absolute bottom-5 right-20 text-gray-500">🙂</button>
+                <input type="text" id="feed-modal-comment-input" placeholder="Add a comment..."
+                    class="form-input w-full bg-gray-100 dark:bg-zinc-800 dark:text-gray-200">
                 <button type="submit" class="text-blue-500 font-semibold text-sm ml-4">Post</button>
             </form>
             <emoji-picker id="feed-comment-emoji-picker" class="hidden w-full"></emoji-picker>
         </div>
     </div>
     <div id="profile-comment-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div id="profile-comment-modal-content" class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-2xl h-4/5 flex flex-col relative">
-            <button class="profile-comment-modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i data-lucide="x" class="h-6 w-6"></i></button>
-            <h2 class="text-center font-semibold p-3 border-b dark:border-zinc-700 text-black dark:text-white">Comments</h2>
+        <div id="profile-comment-modal-content"
+            class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-2xl h-4/5 flex flex-col relative">
+            <button
+                class="profile-comment-modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i
+                    data-lucide="x" class="h-6 w-6"></i></button>
+            <h2 class="text-center font-semibold p-3 border-b dark:border-zinc-700 text-black dark:text-white">Comments
+            </h2>
             <div id="profile-comment-modal-list" class="flex-grow p-4 overflow-y-auto"></div>
             <form id="profile-modal-comment-form" class="p-4 border-t dark:border-zinc-700 flex items-center relative">
-                <button type="button" id="profile-comment-emoji-picker-btn" class="absolute bottom-5 right-20 text-gray-500">😊</button>
-                <input type="text" id="profile-modal-comment-input" placeholder="Add a comment..." class="form-input w-full bg-gray-100 dark:bg-zinc-800 dark:text-gray-200">
+                <button type="button" id="profile-comment-emoji-picker-btn"
+                    class="absolute bottom-5 right-20 text-gray-500">🙂</button>
+                <input type="text" id="profile-modal-comment-input" placeholder="Add a comment..."
+                    class="form-input w-full bg-gray-100 dark:bg-zinc-800 dark:text-gray-200">
                 <button type="submit" class="text-blue-500 font-semibold text-sm ml-4">Post</button>
             </form>
             <emoji-picker id="profile-comment-emoji-picker" class="hidden w-full"></emoji-picker>
         </div>
     </div>
+    <div id="bookmarks-single-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div id="bookmarks-single-post-content"
+            class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-3xl h-4/5 flex relative">
+            <button class="bookmarks-modal-close-button absolute top-4 right-4 text-black dark:text-white z-10">
+                <i data-lucide="x" class="h-8 w-8"></i>
+            </button>
+            <div id="bookmarks-single-post-dynamic-area" class="w-full flex"></div>
+        </div>
+    </div>
+    <div id="bookmarks-comment-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div id="bookmarks-comment-modal-content"
+            class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-2xl h-4/5 flex flex-col relative">
+            <button
+                class="bookmarks-comment-modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i
+                    data-lucide="x" class="h-6 w-6"></i></button>
+            <h2 class="text-center font-semibold p-3 border-b dark:border-zinc-700 text-black dark:text-white">Comments
+            </h2>
+            <div id="bookmarks-comment-modal-list" class="flex-grow p-4 overflow-y-auto"></div>
+            <form id="bookmarks-modal-comment-form"
+                class="p-4 border-t dark:border-zinc-700 flex items-center relative">
+                <button type="button" id="bookmarks-comment-emoji-picker-btn"
+                    class="absolute bottom-5 right-20 text-gray-500">🙂</button>
+                <input type="text" id="bookmarks-modal-comment-input" placeholder="Add a comment..."
+                    class="form-input w-full bg-gray-100 dark:bg-zinc-800 dark:text-gray-200">
+                <button type="submit" class="text-blue-500 font-semibold text-sm ml-4">Post</button>
+            </form>
+            <emoji-picker id="bookmarks-comment-emoji-picker" class="hidden w-full"></emoji-picker>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
+
 </html>

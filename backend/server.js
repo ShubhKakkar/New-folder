@@ -40,7 +40,9 @@ io.on('connection', (socket) => {
     socket.on('joinRoom', (userId) => {
         socket.join(userId);
         onlineUsers.set(userId, socket.id);
-        io.emit('user-online', userId);
+        
+        // Broadcast the online user list to all connected clients
+        io.emit('onlineUsers', Array.from(onlineUsers.keys()));
         console.log(`User ${socket.id} with ID ${userId} joined room and is online.`);
     });
 
@@ -81,14 +83,46 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('bookmarkPost', async ({ userId, postId, action }) => {
+        try {
+            const user = await User.findById(userId);
+            if (!user) {
+                console.error('User not found');
+                return;
+            }
+
+            const isBookmarked = user.bookmarks.some(bookmarkId => bookmarkId.toString() === postId);
+
+            if (action === 'add' && !isBookmarked) {
+                user.bookmarks.unshift(postId);
+            } else if (action === 'remove' && isBookmarked) {
+                user.bookmarks = user.bookmarks.filter(
+                    (bookmarkId) => bookmarkId.toString() !== postId
+                );
+            }
+
+            await user.save();
+            
+            // Emit the updated bookmarks array to the user's room to update all their devices
+            io.to(userId).emit('post-bookmarked', { postId, bookmarks: user.bookmarks });
+        } catch (error) {
+            console.error("Error bookmarking post:", error);
+        }
+    });
+
     socket.on('disconnect', () => {
+        let disconnectedUserId = null;
         for (let [userId, socketId] of onlineUsers.entries()) {
             if (socketId === socket.id) {
+                disconnectedUserId = userId;
                 onlineUsers.delete(userId);
-                io.emit('user-offline', userId);
-                console.log(`User with ID ${userId} disconnected.`);
                 break;
             }
+        }
+        if (disconnectedUserId) {
+            // Broadcast the updated online user list to all clients
+            io.emit('onlineUsers', Array.from(onlineUsers.keys()));
+            console.log(`User with ID ${disconnectedUserId} disconnected.`);
         }
         console.log('User disconnected:', socket.id);
     });

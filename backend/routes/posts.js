@@ -174,5 +174,60 @@ router.post('/comment/:id', authMiddleware, async (req, res) => {
     }
 });
 
+// --- Bookmark/Unbookmark a Post (NEW) ---
+router.put('/bookmark/:id', authMiddleware, async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        const user = await User.findById(req.user.id);
+
+        if (!post || !user) {
+            return res.status(404).json({ msg: 'Post or user not found' });
+        }
+
+        // Check if the post is already bookmarked
+        const isBookmarked = user.bookmarks.some(
+            (bookmarkId) => bookmarkId.toString() === post.id.toString()
+        );
+
+        if (isBookmarked) {
+            // If bookmarked, remove it
+            user.bookmarks = user.bookmarks.filter(
+                (bookmarkId) => bookmarkId.toString() !== post.id.toString()
+            );
+        } else {
+            // If not bookmarked, add it
+            user.bookmarks.unshift(post.id);
+        }
+
+        await user.save();
+        res.json(user.bookmarks);
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// --- Get Bookmarked Posts for a specific user (NEW) ---
+router.get('/bookmarks/:userId', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).populate({
+            path: 'bookmarks',
+            populate: {
+                path: 'user', // Populate user for each bookmarked post
+                select: 'username profilePicture'
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        res.json(user.bookmarks);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
 
 module.exports = router;

@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageHeader = document.getElementById('page-header');
     const homeView = document.getElementById('home-view');
     const profileView = document.getElementById('profile-view');
+    const bookmarksView = document.getElementById('bookmarks-view');
     const loginView = document.getElementById('login-view');
     const signupView = document.getElementById('signup-view');
     const postsContainer = document.getElementById('posts-container');
@@ -30,6 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileSinglePostModal = document.getElementById('profile-single-post-modal');
     const profileCommentModal = document.getElementById('profile-comment-modal');
 
+    // New Modals for Bookmarks
+    const bookmarksSinglePostModal = document.getElementById('bookmarks-single-post-modal');
+    const bookmarksCommentModal = document.getElementById('bookmarks-comment-modal');
+
     const editProfileModal = document.getElementById('edit-profile-modal');
     // New Edit Post Modal
     const editPostModal = document.getElementById('edit-post-modal');
@@ -40,13 +45,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Core App Logic
     const showView = (viewToShow) => {
-        [authContainer, homeView, profileView, pageHeader, chatView].forEach(el => el.classList.add('hidden'));
+        [authContainer, homeView, profileView, bookmarksView, pageHeader, chatView].forEach(el => el.classList.add('hidden'));
         if (viewToShow === 'auth') {
             authContainer.classList.remove('hidden');
         } else {
             pageHeader.classList.remove('hidden');
             if (viewToShow === 'home') homeView.classList.remove('hidden');
             if (viewToShow === 'profile') profileView.classList.remove('hidden');
+            if (viewToShow === 'bookmarks') bookmarksView.classList.remove('hidden');
             if (viewToShow === 'chat') chatView.classList.remove('hidden');
         }
     };
@@ -70,19 +76,19 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // Use pica for high-quality resizing and compression
                 const pica = window.pica();
-                
+
                 // Create an off-screen canvas to draw the image
                 const img = new Image();
                 const imageBitmap = await createImageBitmap(file);
-                
+
                 const canvas = document.createElement('canvas');
                 canvas.width = imageBitmap.width;
                 canvas.height = imageBitmap.height;
-                
+
                 await pica.resize(imageBitmap, canvas, {
                     // Adjust the quality to reduce file size. 
                     // 0.8 is a good balance between quality and size.
-                    quality: 0.8, 
+                    quality: 0.8,
                     alpha: true
                 });
 
@@ -178,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
         posts.forEach(post => {
             if (!post.user) return;
             const isLiked = post.likes.includes(currentUser._id);
+            const isBookmarked = currentUser.bookmarks.includes(post._id);
             const postEl = document.createElement('div');
             postEl.className = "bg-white dark:bg-black border border-gray-300 dark:border-zinc-800 rounded-sm feed-post-card";
             postEl.dataset.postId = post._id;
@@ -188,12 +195,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const likeButtonClasses = `feed-like-btn ${isLiked ? 'liked' : ''}`;
             const likeButtonSvgStyle = isLiked ? 'style="fill: red; color: red;"' : '';
+            const bookmarkButtonSvgStyle = isBookmarked ? 'style="fill: currentColor;"' : '';
 
             postEl.innerHTML = `
                 <div class="flex items-center p-4"><img src="${getProfilePic(post.user)}" class="w-8 h-8 rounded-full object-cover"><span class="ml-3 text-sm text-black dark:text-gray-200 username-link" data-user-id="${post.user._id}">${getUsername(post.user)}</span></div>
                 <img src="${post.imageUrl}" onerror="this.onerror=null;this.src='https://placehold.co/600x600/cccccc/666666?text=Image+Not+Found';" class="w-full">
                 <div class="p-4 text-black dark:text-gray-200">
-                    <div class="flex space-x-4 mb-2"><button class="${likeButtonClasses}"><i data-lucide="heart" class="h-6 w-6" ${likeButtonSvgStyle}></i></button><button class="feed-view-comments-btn"><i data-lucide="message-circle" class="h-6 w-6"></i></button><button class="share-btn"><i data-lucide="send" class="h-6 w-6"></i></button><button class="ml-auto"><i data-lucide="bookmark" class="h-6 w-6"></i></button></div>
+                    <div class="flex space-x-4 mb-2"><button class="${likeButtonClasses}"><i data-lucide="heart" class="h-6 w-6" ${likeButtonSvgStyle}></i></button><button class="feed-view-comments-btn"><i data-lucide="message-circle" class="h-6 w-6"></i></button><button class="share-btn"><i data-lucide="send" class="h-6 w-6"></i></button><button class="ml-auto feed-bookmark-btn"><i data-lucide="bookmark" class="h-6 w-6" ${bookmarkButtonSvgStyle}></i></button></div>
                     <p class="font-semibold text-sm feed-likes-count">${post.likes.length} likes</p>
                     <p class="text-sm mt-1"><span class="username-link" data-user-id="${post.user._id}">${getUsername(post.user)}</span> ${post.caption}</p>
                     <div class="text-sm mt-2 space-y-2 feed-comments-section">${firstCommentHtml}</div>
@@ -223,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const likeIconStyle = isLiked ? 'style="fill: red; color: red;"' : '';
             // console.log(post)
             const isOwner = post.user._id === currentUser._id;
-            
+
             let ownerButtons = '';
             if (isOwner) {
                 ownerButtons = `
@@ -243,6 +251,33 @@ document.addEventListener('DOMContentLoaded', () => {
             profilePostsGrid.appendChild(postEl);
         });
         lucide.createIcons();
+    };
+
+    // Renders the bookmarks view
+    const renderBookmarks = (posts) => {
+        bookmarksView.innerHTML = `
+            <main class="container mx-auto max-w-4xl p-4 md:p-8 text-black dark:text-gray-200">
+                <header class="mb-8"><h1 class="text-3xl font-light">Saved</h1></header>
+                <div id="bookmarks-posts-grid" class="grid grid-cols-3 gap-1 md:gap-4"></div>
+            </main>
+        `;
+        const bookmarksPostsGrid = document.getElementById('bookmarks-posts-grid');
+        if (posts.length === 0) {
+            bookmarksPostsGrid.innerHTML = '<p class="col-span-3 text-center text-gray-500">No saved posts yet.</p>';
+        } else {
+            posts.forEach(post => {
+                if (!post || !post.user) return;
+                const postEl = document.createElement('div');
+                postEl.className = "relative group bookmarks-post-item";
+                postEl.dataset.postId = post._id;
+                const isLiked = post.likes.includes(currentUser._id);
+                const likeIconStyle = isLiked ? 'style="fill: red; color: red;"' : '';
+                postEl.innerHTML = `<img src="${post.imageUrl}" onerror="this.onerror=null;this.src='https://placehold.co/300x300/cccccc/666666?text=Post';" class="w-full h-full object-cover aspect-square cursor-pointer"><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center space-x-4 text-white opacity-0 group-hover:opacity-100 transition-opacity"><span class="flex items-center"><i data-lucide="heart" class="h-5 w-5 mr-1" ${likeIconStyle}></i>${post.likes.length}</span><span class="flex items-center"><i data-lucide="message-circle" class="h-5 w-5 mr-1"></i>${post.comments.length}</span></div>`;
+                bookmarksPostsGrid.appendChild(postEl);
+            });
+        }
+        lucide.createIcons();
+        showView('bookmarks');
     };
 
     const renderSuggestions = (users) => {
@@ -307,9 +342,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderSinglePostFeedModal = (post) => {
         const postContent = document.getElementById('feed-single-post-dynamic-area');
         const isLiked = post.likes.includes(currentUser._id);
+        const isBookmarked = currentUser.bookmarks.includes(post._id);
         const commentsHtml = renderComments(post.comments);
         const likeButtonClasses = `feed-like-btn ${isLiked ? 'liked' : ''}`;
         const likeButtonSvgStyle = isLiked ? 'style="fill: red; color: red;"' : '';
+        const bookmarkButtonSvgStyle = isBookmarked ? 'style="fill: currentColor;"' : '';
         postContent.innerHTML = `
             <div class="w-1/2 bg-black flex items-center justify-center"><img src="${post.imageUrl}" class="max-h-full max-w-full"></div>
             <div class="w-1/2 flex flex-col p-4 text-black dark:text-white">
@@ -323,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="${likeButtonClasses}"><i data-lucide="heart" class="h-6 w-6" ${likeButtonSvgStyle}></i></button>
                         <button class="feed-view-comments-btn"><i data-lucide="message-circle" class="h-6 w-6"></i></button>
                         <button class="share-btn"><i data-lucide="send" class="h-6 w-6"></i></button>
-                        <button class="ml-auto"><i data-lucide="bookmark" class="h-6 w-6"></i></button>
+                        <button class="ml-auto feed-bookmark-btn"><i data-lucide="bookmark" class="h-6 w-6" ${bookmarkButtonSvgStyle}></i></button>
                     </div>
                     <p class="font-semibold text-sm feed-likes-count">${post.likes.length} likes</p>
                     <form id="single-post-feed-comment-form" class="comment-form flex items-center mt-2 border-t border-gray-200 dark:border-zinc-800 pt-2 relative">
@@ -342,9 +379,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderSinglePostProfileModal = (post) => {
         const postContent = document.getElementById('profile-single-post-dynamic-area');
         const isLiked = post.likes.includes(currentUser._id);
+        const isBookmarked = currentUser.bookmarks.includes(post._id);
         const commentsHtml = renderComments(post.comments, true);
         const likeButtonClasses = `profile-like-btn ${isLiked ? 'liked' : ''}`;
         const likeButtonSvgStyle = isLiked ? 'style="fill: red; color: red;"' : '';
+        const bookmarkButtonSvgStyle = isBookmarked ? 'style="fill: currentColor;"' : '';
         postContent.innerHTML = `
             <div class="w-1/2 bg-black flex items-center justify-center"><img src="${post.imageUrl}" class="max-h-full max-w-full"></div>
             <div class="w-1/2 flex flex-col p-4 text-black dark:text-white">
@@ -358,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="${likeButtonClasses}"><i data-lucide="heart" class="h-6 w-6" ${likeButtonSvgStyle}></i></button>
                         <button class="profile-view-comments-btn"><i data-lucide="message-circle" class="h-6 w-6"></i></button>
                         <button class="share-btn"><i data-lucide="send" class="h-6 w-6"></i></button>
-                        <button class="ml-auto"><i data-lucide="bookmark" class="h-6 w-6"></i></button>
+                        <button class="ml-auto profile-bookmark-btn"><i data-lucide="bookmark" class="h-6 w-6" ${bookmarkButtonSvgStyle}></i></button>
                     </div>
                     <p class="font-semibold text-sm profile-likes-count">${post.likes.length} likes</p>
                     <form id="single-post-profile-comment-form" class="comment-form flex items-center mt-2 border-t border-gray-200 dark:border-zinc-800 pt-2 relative">
@@ -370,6 +409,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`;
         profileSinglePostModal.classList.replace('hidden', 'flex');
+        lucide.createIcons();
+    };
+
+    // New function to render single post modal for bookmarks
+    const renderSinglePostBookmarksModal = (post) => {
+        const postContent = document.getElementById('bookmarks-single-post-dynamic-area');
+        const isLiked = post.likes.includes(currentUser._id);
+        const isBookmarked = currentUser.bookmarks.includes(post._id);
+        const commentsHtml = renderComments(post.comments, true);
+        const likeButtonClasses = `bookmarks-like-btn ${isLiked ? 'liked' : ''}`;
+        const likeButtonSvgStyle = isLiked ? 'style="fill: red; color: red;"' : '';
+        const bookmarkButtonSvgStyle = isBookmarked ? 'style="fill: currentColor;"' : '';
+        postContent.innerHTML = `
+            <div class="w-1/2 bg-black flex items-center justify-center"><img src="${post.imageUrl}" class="max-h-full max-w-full"></div>
+            <div class="w-1/2 flex flex-col p-4 text-black dark:text-white">
+                <div class="flex items-center pb-4 border-b border-gray-200 dark:border-zinc-700">
+                    <img src="${getProfilePic(post.user)}" class="w-8 h-8 rounded-full object-cover">
+                    <span class="ml-3 username-link" data-user-id="${post.user._id}">${getUsername(post.user)}</span>
+                </div>
+                <div class="flex-grow overflow-y-auto py-4 space-y-4 bookmarks-comments-section">${commentsHtml}</div>
+                <div class="pt-4 border-t border-gray-200 dark:border-zinc-700 bookmarks-post-card" data-post-id="${post._id}">
+                    <div class="flex space-x-4 mb-2">
+                        <button class="${likeButtonClasses}"><i data-lucide="heart" class="h-6 w-6" ${likeButtonSvgStyle}></i></button>
+                        <button class="bookmarks-view-comments-btn"><i data-lucide="message-circle" class="h-6 w-6"></i></button>
+                        <button class="share-btn"><i data-lucide="send" class="h-6 w-6"></i></button>
+                        <button class="ml-auto bookmarks-bookmark-btn"><i data-lucide="bookmark" class="h-6 w-6" ${bookmarkButtonSvgStyle}></i></button>
+                    </div>
+                    <p class="font-semibold text-sm bookmarks-likes-count">${post.likes.length} likes</p>
+                    <form id="single-post-bookmarks-comment-form" class="comment-form flex items-center mt-2 border-t border-gray-200 dark:border-zinc-800 pt-2 relative">
+                        <button type="button" class="absolute right-12 text-gray-500 bookmarks-single-post-emoji-btn">😊</button>
+                        <input type="text" placeholder="Add a comment..." class="bookmarks-comment-input w-full text-sm border-none focus:ring-0 bg-transparent dark:text-gray-200">
+                        <button type="submit" class="text-blue-500 font-semibold text-sm">Post</button>
+                    </form>
+                    <emoji-picker class="bookmarks-single-post-emoji-picker hidden w-full"></emoji-picker>
+                </div>
+            </div>`;
+        bookmarksSinglePostModal.classList.replace('hidden', 'flex');
         lucide.createIcons();
     };
 
@@ -434,29 +510,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.body.addEventListener('click', async (e) => {
         try {
-            const likeBtn = e.target.closest('.feed-like-btn, .profile-like-btn');
+            const likeBtn = e.target.closest('.feed-like-btn, .profile-like-btn, .bookmarks-like-btn');
             const shareBtn = e.target.closest('.share-btn');
             const followBtn = e.target.closest('.follow-btn');
             const usernameLink = e.target.closest('.username-link');
             const profilePostItem = e.target.closest('.profile-post-item');
+            const bookmarksPostItem = e.target.closest('.bookmarks-post-item');
             const sidebarProfileLink = e.target.closest('#sidebar-profile-link');
             const editProfileBtn = e.target.closest('#edit-profile-btn');
             const conversationItem = e.target.closest('.conversation-item');
             const feedViewCommentsBtn = e.target.closest('.feed-view-comments-btn');
             const profileViewCommentsBtn = e.target.closest('.profile-view-comments-btn');
+            const bookmarksViewCommentsBtn = e.target.closest('.bookmarks-view-comments-btn');
             const commentReplyBtn = e.target.closest('.comment-reply-btn');
             const readMoreBtn = e.target.closest('.read-more-comment');
             const viewRepliesBtn = e.target.closest('.view-replies-btn');
             const feedSinglePostEmojiBtn = e.target.closest('.feed-single-post-emoji-btn');
             const profileSinglePostEmojiBtn = e.target.closest('.profile-single-post-emoji-btn');
+            const bookmarksSinglePostEmojiBtn = e.target.closest('.bookmarks-single-post-emoji-btn');
             const feedCommentEmojiBtn = e.target.closest('#feed-comment-emoji-picker-btn');
             const profileCommentEmojiBtn = e.target.closest('#profile-comment-emoji-picker-btn');
+            const bookmarksCommentEmojiBtn = e.target.closest('#bookmarks-comment-emoji-picker-btn');
             const profileEmojiBtn = e.target.closest('#emoji-picker-btn');
             const createPostEmojiBtn = e.target.closest('#create-post-emoji-btn'); // New
             const searchResultItem = e.target.closest('#user-search-results .username-link');
             const postOptionsBtn = e.target.closest('.post-options-btn');
             const editPostBtn = e.target.closest('.edit-post-btn');
             const deletePostBtn = e.target.closest('.delete-post-btn');
+            const bookmarkBtn = e.target.closest('.feed-bookmark-btn, .profile-bookmark-btn, .bookmarks-bookmark-btn');
 
             // Find all active post options dropdowns
             const allDropdowns = document.querySelectorAll('.post-options-dropdown:not(.hidden)');
@@ -477,17 +558,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (likeBtn) {
-                const postCard = likeBtn.closest('.feed-post-card, .profile-post-card');
+                const postCard = likeBtn.closest('.feed-post-card, .profile-post-card, .bookmarks-post-card');
                 if (!postCard) return;
                 const postId = postCard.dataset.postId;
                 try {
                     const res = await fetchWithAuth(`${API_URL}/api/posts/like/${postId}`, { method: 'PUT' });
                     if (!res.ok) throw new Error('Like failed');
                     const newLikes = await res.json();
-                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-likes-count, .profile-post-card[data-post-id="${postId}"] .profile-likes-count`).forEach(el => {
+                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-likes-count, .profile-post-card[data-post-id="${postId}"] .profile-likes-count, .bookmarks-post-card[data-post-id="${postId}"] .bookmarks-likes-count`).forEach(el => {
                         el.textContent = `${newLikes.length} likes`;
                     });
-                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-like-btn, .profile-post-card[data-post-id="${postId}"] .profile-like-btn`).forEach(btn => {
+                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-like-btn, .profile-post-card[data-post-id="${postId}"] .profile-like-btn, .bookmarks-post-card[data-post-id="${postId}"] .bookmarks-like-btn`).forEach(btn => {
                         btn.classList.toggle('liked');
                         const heartIcon = btn.querySelector('svg');
                         if (heartIcon) {
@@ -501,6 +582,42 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 } catch (error) { console.error(error); }
+            }
+
+            if (bookmarkBtn) {
+                const postCard = bookmarkBtn.closest('.feed-post-card, .profile-post-card, .bookmarks-post-card');
+                if (!postCard) return;
+                const postId = postCard.dataset.postId;
+                const isBookmarked = currentUser.bookmarks.some(bookmarkId => bookmarkId.toString() === postId);
+                const action = isBookmarked ? 'remove' : 'add';
+                try {
+                    const res = await fetchWithAuth(`${API_URL}/api/posts/bookmark/${postId}`, { method: 'PUT' });
+                    if (!res.ok) throw new Error('Bookmark action failed');
+                    const updatedBookmarks = await res.json();
+                    currentUser.bookmarks = updatedBookmarks;
+
+                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-bookmark-btn, .profile-post-card[data-post-id="${postId}"] .profile-bookmark-btn, .bookmarks-post-card[data-post-id="${postId}"] .bookmarks-bookmark-btn`).forEach(btn => {
+                        const bookmarkIcon = btn.querySelector('svg');
+                        if (bookmarkIcon) {
+                            if (action === 'add') {
+                                bookmarkIcon.style.fill = 'currentColor';
+                                bookmarkIcon.style.color = 'currentColor';
+                            } else {
+                                bookmarkIcon.style.fill = 'none';
+                                bookmarkIcon.style.color = 'currentColor';
+                            }
+                        }
+                    });
+
+                    if (bookmarksView.classList.contains('hidden') === false) {
+                        const updatedBookmarksPosts = postsCache.filter(post => currentUser.bookmarks.includes(post._id));
+                        renderBookmarks(updatedBookmarksPosts);
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                    alert('Failed to bookmark/unbookmark the post.');
+                }
             }
 
             if (shareBtn) { e.preventDefault(); shareModal.classList.replace('hidden', 'flex'); }
@@ -539,7 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     userSearchResults.classList.add('hidden');
                 } catch (error) { alert(error.message); }
             }
-            
+
             // This event handler is for opening the post modal on image click
             if (profilePostItem) {
                 // Ensure the click is not on the options button
@@ -548,6 +665,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const post = postsCache.find(p => p._id === postId);
                     if (post) renderSinglePostProfileModal(post);
                 }
+            }
+
+            if (bookmarksPostItem) {
+                const postId = bookmarksPostItem.dataset.postId;
+                const post = postsCache.find(p => p._id === postId);
+                if (post) renderSinglePostBookmarksModal(post);
             }
 
             if (editProfileBtn) {
@@ -608,6 +731,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            if (bookmarksViewCommentsBtn) {
+                const postCard = bookmarksViewCommentsBtn.closest('.bookmarks-post-card, .bookmarks-single-post-dynamic-area');
+                if (!postCard) return;
+                const postId = postCard.dataset.postId;
+                const post = postsCache.find(p => p._id === postId);
+                if (post) {
+                    const commentList = document.getElementById('bookmarks-comment-modal-list');
+                    renderCommentsForModal(post.comments, commentList);
+                    document.getElementById('bookmarks-modal-comment-form').dataset.postId = postId;
+                    bookmarksCommentModal.classList.replace('hidden', 'flex');
+                }
+            }
+
             if (commentReplyBtn) {
                 const commentItem = commentReplyBtn.closest('.comment-item');
                 if (!commentItem) return;
@@ -633,6 +769,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         modalCommentInput.placeholder = `Replying to ${commentItem.querySelector('.username-link').textContent}...`;
                         modalCommentInput.focus();
                     }
+                } else if (modal.id === 'bookmarks-comment-modal') {
+                    const postId = modal.querySelector('#bookmarks-modal-comment-form').dataset.postId;
+                    const post = postsCache.find(p => p._id === postId);
+                    if (post) {
+                        const modalCommentForm = document.getElementById('bookmarks-modal-comment-form');
+                        const modalCommentInput = document.getElementById('bookmarks-modal-comment-input');
+                        modalCommentForm.dataset.parentId = commentItem.dataset.commentId;
+                        modalCommentInput.placeholder = `Replying to ${commentItem.querySelector('.username-link').textContent}...`;
+                        modalCommentInput.focus();
+                    }
                 } else if (modal.id === 'feed-single-post-modal') {
                     const commentForm = document.getElementById('single-post-feed-comment-form');
                     const commentInput = commentForm.querySelector('.feed-comment-input');
@@ -642,6 +788,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (modal.id === 'profile-single-post-modal') {
                     const commentForm = document.getElementById('single-post-profile-comment-form');
                     const commentInput = commentForm.querySelector('.profile-comment-input');
+                    commentForm.dataset.parentId = commentItem.dataset.commentId;
+                    commentInput.placeholder = `Replying to ${commentItem.querySelector('.username-link').textContent}...`;
+                    commentInput.focus();
+                } else if (modal.id === 'bookmarks-single-post-modal') {
+                    const commentForm = document.getElementById('single-post-bookmarks-comment-form');
+                    const commentInput = commentForm.querySelector('.bookmarks-comment-input');
                     commentForm.dataset.parentId = commentItem.dataset.commentId;
                     commentInput.placeholder = `Replying to ${commentItem.querySelector('.username-link').textContent}...`;
                     commentInput.focus();
@@ -671,11 +823,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const emojiPicker = form.nextElementSibling;
                 if (emojiPicker) emojiPicker.classList.toggle('hidden');
             }
+            if (bookmarksSinglePostEmojiBtn) {
+                const form = bookmarksSinglePostEmojiBtn.closest('form');
+                const emojiPicker = form.nextElementSibling;
+                if (emojiPicker) emojiPicker.classList.toggle('hidden');
+            }
             if (feedCommentEmojiBtn) {
                 document.getElementById('feed-comment-emoji-picker').classList.toggle('hidden');
             }
             if (profileCommentEmojiBtn) {
                 document.getElementById('profile-comment-emoji-picker').classList.toggle('hidden');
+            }
+            if (bookmarksCommentEmojiBtn) {
+                document.getElementById('bookmarks-comment-emoji-picker').classList.toggle('hidden');
             }
             if (profileEmojiBtn) {
                 editProfileModal.querySelector('emoji-picker').classList.toggle('hidden');
@@ -683,7 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (createPostEmojiBtn) {
                 document.getElementById('create-post-emoji-picker').classList.toggle('hidden');
             }
-            
+
             if (editPostBtn) {
                 e.stopPropagation(); // Prevent the click from bubbling up
                 const postId = editPostBtn.dataset.postId;
@@ -731,10 +891,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Separate single post comment forms
             const singlePostFeedCommentForm = e.target.closest('#single-post-feed-comment-form');
             const singlePostProfileCommentForm = e.target.closest('#single-post-profile-comment-form');
+            const singlePostBookmarksCommentForm = e.target.closest('#single-post-bookmarks-comment-form');
 
             // Separate comment modal forms
             const feedModalCommentForm = e.target.closest('#feed-modal-comment-form');
             const profileModalCommentForm = e.target.closest('#profile-modal-comment-form');
+            const bookmarksModalCommentForm = e.target.closest('#bookmarks-modal-comment-form');
 
             if (singlePostFeedCommentForm) {
                 e.preventDefault();
@@ -798,6 +960,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 } catch (error) { console.error(error); }
             }
+            else if (singlePostBookmarksCommentForm) {
+                e.preventDefault();
+                const postCard = singlePostBookmarksCommentForm.closest('.bookmarks-post-card, .bookmarks-single-post-dynamic-area');
+                const postId = postCard.dataset.postId;
+                const input = singlePostBookmarksCommentForm.querySelector('.bookmarks-comment-input');
+                const text = input.value;
+                const parentId = singlePostBookmarksCommentForm.dataset.parentId;
+                if (!text) return;
+                try {
+                    const res = await fetchWithAuth(`${API_URL}/api/posts/comment/${postId}`, { method: 'POST', body: JSON.stringify({ text, parentId }) });
+                    if (!res.ok) throw new Error('Comment failed');
+                    const updatedComments = await res.json();
+
+                    const postIndex = postsCache.findIndex(p => p._id === postId);
+                    if (postIndex !== -1) {
+                        postsCache[postIndex].comments = updatedComments;
+                    }
+
+                    input.value = '';
+                    delete singlePostBookmarksCommentForm.dataset.parentId;
+                    input.placeholder = 'Add a comment...';
+
+                    const modalCommentsSection = document.querySelector('#bookmarks-single-post-dynamic-area .bookmarks-comments-section');
+                    if (modalCommentsSection) {
+                        renderCommentsForModal(updatedComments, modalCommentsSection);
+                        lucide.createIcons();
+                    }
+
+                } catch (error) { console.error(error); }
+            }
             else if (feedModalCommentForm) {
                 e.preventDefault();
                 const postId = feedModalCommentForm.dataset.postId;
@@ -845,6 +1037,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderCommentsForModal(updatedComments, document.getElementById('profile-comment-modal-list'));
                 } catch (error) { console.error(error); }
             }
+            else if (bookmarksModalCommentForm) {
+                e.preventDefault();
+                const postId = bookmarksModalCommentForm.dataset.postId;
+                const input = document.getElementById('bookmarks-modal-comment-input');
+                const text = input.value;
+                const parentId = bookmarksModalCommentForm.dataset.parentId;
+                if (!text) return;
+                try {
+                    const res = await fetchWithAuth(`${API_URL}/api/posts/comment/${postId}`, { method: 'POST', body: JSON.stringify({ text, parentId }) });
+                    if (!res.ok) throw new Error('Comment failed');
+                    const updatedComments = await res.json();
+
+                    const postIndex = postsCache.findIndex(p => p._id === postId);
+                    if (postIndex !== -1) {
+                        postsCache[postIndex].comments = updatedComments;
+                    }
+
+                    input.value = '';
+                    input.placeholder = 'Add a comment...';
+                    delete bookmarksModalCommentForm.dataset.parentId;
+                    renderCommentsForModal(updatedComments, document.getElementById('bookmarks-comment-modal-list'));
+                } catch (error) { console.error(error); }
+            }
             else if (createPostForm) {
                 e.preventDefault();
                 const createPostButton = document.getElementById('createPostButton');
@@ -869,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ imageUrl, caption }),
                     });
                     if (!res.ok) throw new Error('Failed to create post');
-                    
+
                     createPostModal.classList.replace('flex', 'hidden');
                     initializeApp();
                 } catch (error) {
@@ -891,7 +1106,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     imageUrl = await uploadImageToCloudinary(imageFile);
                     if (!imageUrl) return;
                 }
-                
+
                 try {
                     console.log('Updating post:', postId, caption, imageUrl);
                     const res = await fetchWithAuth(`${API_URL}/api/posts/${postId}`, {
@@ -899,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ caption, imageUrl }),
                     });
                     if (!res.ok) throw new Error('Failed to update post.');
-                    
+
                     editPostModal.classList.replace('flex', 'hidden');
                     // Re-fetch all posts to update the UI
                     initializeApp();
@@ -987,6 +1202,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logo-home-link').addEventListener('click', (e) => { e.preventDefault(); initializeApp(); });
     document.getElementById('nav-profile-trigger').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
     document.getElementById('nav-create-post').addEventListener('click', (e) => { e.preventDefault(); createPostModal.classList.replace('hidden', 'flex'); });
+    document.getElementById('nav-bookmarks-link').addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetchWithAuth(`${API_URL}/api/posts/bookmarks/${currentUser._id}`);
+            if (!res.ok) throw new Error('Failed to fetch bookmarks');
+            const bookmarkedPosts = await res.json();
+            renderBookmarks(bookmarkedPosts);
+        } catch (error) {
+            console.error("Could not fetch bookmarks:", error);
+            alert('Failed to load saved posts.');
+        }
+    });
     document.getElementById('nav-chat').addEventListener('click', async (e) => {
         e.preventDefault();
         try {
@@ -1025,17 +1252,19 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.addEventListener('click', (e) => {
-        if (e.target.closest('.modal-cancel-button') || e.target.classList.contains('modal-backdrop')) {
-            createPostModal.classList.replace('flex', 'hidden');
-            shareModal.classList.replace('flex', 'hidden');
-            editProfileModal.classList.replace('flex', 'hidden');
-            editPostModal.classList.replace('flex', 'hidden');
-        }
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#edit-profile-modal .modal-cancel-button') || e.target.id === 'edit-profile-modal') {
+                editProfileModal.classList.replace('flex', 'hidden');
+            }
+        });
         if (e.target.closest('.feed-modal-close-button') || e.target.classList.contains('modal-backdrop')) {
             feedSinglePostModal.classList.replace('flex', 'hidden');
         }
         if (e.target.closest('.profile-modal-close-button') || e.target.classList.contains('modal-backdrop')) {
             profileSinglePostModal.classList.replace('flex', 'hidden');
+        }
+        if (e.target.closest('.bookmarks-modal-close-button') || e.target.classList.contains('modal-backdrop')) {
+            bookmarksSinglePostModal.classList.replace('flex', 'hidden');
         }
         if (e.target.closest('.feed-comment-modal-cancel-button') || e.target.classList.contains('modal-backdrop')) {
             feedCommentModal.classList.replace('flex', 'hidden');
@@ -1044,6 +1273,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.profile-comment-modal-cancel-button') || e.target.classList.contains('modal-backdrop')) {
             profileCommentModal.classList.replace('flex', 'hidden');
             resetCommentModal(document.getElementById('profile-modal-comment-form'), document.getElementById('profile-modal-comment-input'));
+        }
+        if (e.target.closest('.bookmarks-comment-modal-cancel-button') || e.target.classList.contains('modal-backdrop')) {
+            bookmarksCommentModal.classList.replace('flex', 'hidden');
+            resetCommentModal(document.getElementById('bookmarks-modal-comment-form'), document.getElementById('bookmarks-modal-comment-input'));
         }
 
         const profileDropdown = document.getElementById('profile-dropdown');
@@ -1067,12 +1300,19 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (picker.closest('#profile-comment-modal')) {
             document.getElementById('profile-modal-comment-input').value += unicode;
             picker.classList.add('hidden');
+        } else if (picker.closest('#bookmarks-comment-modal')) {
+            document.getElementById('bookmarks-modal-comment-input').value += unicode;
+            picker.classList.add('hidden');
         } else if (picker.closest('#feed-single-post-modal')) {
             const input = picker.previousElementSibling.querySelector('.feed-comment-input');
             if (input) input.value += unicode;
             picker.classList.add('hidden');
         } else if (picker.closest('#profile-single-post-modal')) {
             const input = picker.previousElementSibling.querySelector('.profile-comment-input');
+            if (input) input.value += unicode;
+            picker.classList.add('hidden');
+        } else if (picker.closest('#bookmarks-single-post-modal')) {
+            const input = picker.previousElementSibling.querySelector('.bookmarks-comment-input');
             if (input) input.value += unicode;
             picker.classList.add('hidden');
         } else if (picker.closest('#create-post-modal')) {

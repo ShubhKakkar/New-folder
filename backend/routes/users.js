@@ -21,7 +21,18 @@ router.get('/', authMiddleware, async (req, res) => {
 // --- Get a specific user's profile ---
 router.get('/:id', authMiddleware, async (req, res) => {
     try {
-        const user = await User.findById(req.params.id).select('-password');
+        const user = await User.findById(req.params.id)
+            .select('-password')
+            .populate('following', ['username', 'profilePicture'])
+            .populate('followers', ['username', 'profilePicture'])
+            .populate({
+                path: 'bookmarks',
+                populate: {
+                    path: 'user', // Populate user for each bookmarked post
+                    select: 'username profilePicture'
+                }
+            });
+
         if (!user) {
             return res.status(404).json({ msg: 'User not found' });
         }
