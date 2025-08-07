@@ -843,6 +843,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (createPostEmojiBtn) {
                 document.getElementById('create-post-emoji-picker').classList.toggle('hidden');
             }
+            // Add handler for the edit post emoji button
+            if (e.target.closest('#edit-post-emoji-btn')) {
+                document.getElementById('edit-post-emoji-picker').classList.toggle('hidden');
+            }
 
             if (editPostBtn) {
                 e.stopPropagation(); // Prevent the click from bubbling up
@@ -1326,6 +1330,11 @@ document.addEventListener('DOMContentLoaded', () => {
             picker.classList.add('hidden');
         } else if (picker.closest('#create-post-modal')) {
             document.getElementById('postCaption').value += unicode;
+            picker.classList.add('hidden');
+        }
+        // Add handler for the edit post emoji picker
+        else if (picker.closest('#edit-post-modal')) {
+            document.getElementById('editPostCaption').value += unicode;
             picker.classList.add('hidden');
         }
     });
