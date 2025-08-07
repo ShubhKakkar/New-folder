@@ -1278,6 +1278,15 @@ document.addEventListener('DOMContentLoaded', () => {
             bookmarksCommentModal.classList.replace('flex', 'hidden');
             resetCommentModal(document.getElementById('bookmarks-modal-comment-form'), document.getElementById('bookmarks-modal-comment-input'));
         }
+        
+        // Add listeners for create and edit post modals
+        if (e.target.closest('#create-post-modal .modal-cancel-button') || e.target.id === 'create-post-modal') {
+            createPostModal.classList.replace('flex', 'hidden');
+        }
+        if (e.target.closest('#edit-post-modal .modal-cancel-button') || e.target.id === 'edit-post-modal') {
+            editPostModal.classList.replace('flex', 'hidden');
+        }
+
 
         const profileDropdown = document.getElementById('profile-dropdown');
         const profileTrigger = document.getElementById('nav-profile-trigger');
