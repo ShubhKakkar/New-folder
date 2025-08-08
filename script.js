@@ -268,81 +268,81 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let storyInterval;
-const renderStoryModal = (userStories, currentIndex, isAutoAdvance = false) => {
-    clearInterval(storyInterval);
-    if (userStories.length === 0) {
-        viewStoryModal.classList.replace('flex', 'hidden');
-        return;
-    }
-    const story = userStories[currentIndex];
-    const storyViewer = document.getElementById('story-viewer');
-    const storyProgressContainer = document.getElementById('story-progress-container');
-    const storyUserPic = document.getElementById('story-user-pic');
-    const storyUsername = document.getElementById('story-username');
-    const deleteStoryBtn = document.getElementById('delete-story-btn');
-    const addStoryBtn = document.getElementById('add-story-btn');
-    const prevStoryBtn = document.getElementById('prev-story-btn');
-    const nextStoryBtn = document.getElementById('next-story-btn');
-    
-    viewStoryModal.dataset.userId = userStories[0].user._id;
-    viewStoryModal.dataset.storyIndex = currentIndex;
-    viewStoryModal.dataset.storyId = story._id;
-
-    storyViewer.innerHTML = `<img src="${story.imageUrl}" class="w-full h-full object-contain mx-auto" />`;
-    storyUserPic.src = getProfilePic(story.user);
-    storyUsername.textContent = getUsername(story.user);
-
-    const isMyStory = story.user._id === currentUser._id;
-    if (isMyStory) {
-        deleteStoryBtn.classList.remove('hidden');
-        deleteStoryBtn.dataset.storyId = story._id;
-        addStoryBtn.classList.remove('hidden');
-    } else {
-        deleteStoryBtn.classList.add('hidden');
-        addStoryBtn.classList.add('hidden');
-    }
-    
-    if (userStories.length > 1) {
-        prevStoryBtn.style.visibility = currentIndex > 0 ? 'visible' : 'hidden';
-        nextStoryBtn.style.visibility = currentIndex < userStories.length - 1 ? 'visible' : 'hidden';
-    } else {
-        prevStoryBtn.style.visibility = 'hidden';
-        nextStoryBtn.style.visibility = 'hidden';
-    }
-
-    storyProgressContainer.innerHTML = userStories.map((s, i) => `
-        <div class="flex-1 h-1 bg-white bg-opacity-50 rounded-full overflow-hidden">
-            <div class="h-full bg-white progress-bar" style="transform-origin: left; transform: scaleX(0); transition: transform 4.9s linear;"></div>
-        </div>
-    `).join('');
-
-    // Fill past progress bars and set up the current one
-    for (let i = 0; i < currentIndex; i++) {
-        const pastBar = storyProgressContainer.children[i].querySelector('.progress-bar');
-        if (pastBar) {
-            pastBar.style.transform = 'scaleX(1)';
-            pastBar.style.transition = 'none';
-        }
-    }
-
-    const activeProgressBar = storyProgressContainer.children[currentIndex].querySelector('.progress-bar');
-    if (activeProgressBar) {
-        requestAnimationFrame(() => {
-            activeProgressBar.style.transform = 'scaleX(1)';
-        });
-    }
-
-    viewStoryModal.classList.replace('hidden', 'flex');
-
-    storyInterval = setTimeout(() => {
-        if (currentIndex < userStories.length - 1) {
-            renderStoryModal(userStories, currentIndex + 1, true);
-        } else {
+    const renderStoryModal = (userStories, currentIndex, isAutoAdvance = false) => {
+        clearInterval(storyInterval);
+        if (userStories.length === 0) {
             viewStoryModal.classList.replace('flex', 'hidden');
-            clearInterval(storyInterval);
+            return;
         }
-    }, 5000);
-};
+        const story = userStories[currentIndex];
+        const storyViewer = document.getElementById('story-viewer');
+        const storyProgressContainer = document.getElementById('story-progress-container');
+        const storyUserPic = document.getElementById('story-user-pic');
+        const storyUsername = document.getElementById('story-username');
+        const deleteStoryBtn = document.getElementById('delete-story-btn');
+        const addStoryBtn = document.getElementById('add-story-btn');
+        const prevStoryBtn = document.getElementById('prev-story-btn');
+        const nextStoryBtn = document.getElementById('next-story-btn');
+        
+        viewStoryModal.dataset.userId = userStories[0].user._id;
+        viewStoryModal.dataset.storyIndex = currentIndex;
+        viewStoryModal.dataset.storyId = story._id;
+
+        storyViewer.innerHTML = `<img src="${story.imageUrl}" class="w-full h-full object-contain mx-auto" />`;
+        storyUserPic.src = getProfilePic(story.user);
+        storyUsername.textContent = getUsername(story.user);
+
+        const isMyStory = story.user._id === currentUser._id;
+        if (isMyStory) {
+            deleteStoryBtn.classList.remove('hidden');
+            deleteStoryBtn.dataset.storyId = story._id;
+            addStoryBtn.classList.remove('hidden');
+        } else {
+            deleteStoryBtn.classList.add('hidden');
+            addStoryBtn.classList.add('hidden');
+        }
+        
+        if (userStories.length > 1) {
+            prevStoryBtn.style.visibility = currentIndex > 0 ? 'visible' : 'hidden';
+            nextStoryBtn.style.visibility = currentIndex < userStories.length - 1 ? 'visible' : 'hidden';
+        } else {
+            prevStoryBtn.style.visibility = 'hidden';
+            nextStoryBtn.style.visibility = 'hidden';
+        }
+
+        storyProgressContainer.innerHTML = userStories.map((s, i) => `
+            <div class="flex-1 h-1 bg-white bg-opacity-50 rounded-full overflow-hidden">
+                <div class="h-full bg-white progress-bar" style="transform-origin: left; transform: scaleX(0); transition: transform 4.9s linear;"></div>
+            </div>
+        `).join('');
+
+        // Fill past progress bars and set up the current one
+        for (let i = 0; i < currentIndex; i++) {
+            const pastBar = storyProgressContainer.children[i].querySelector('.progress-bar');
+            if (pastBar) {
+                pastBar.style.transform = 'scaleX(1)';
+                pastBar.style.transition = 'none';
+            }
+        }
+
+        const activeProgressBar = storyProgressContainer.children[currentIndex].querySelector('.progress-bar');
+        if (activeProgressBar) {
+            requestAnimationFrame(() => {
+                activeProgressBar.style.transform = 'scaleX(1)';
+            });
+        }
+
+        viewStoryModal.classList.replace('hidden', 'flex');
+
+        storyInterval = setTimeout(() => {
+            if (currentIndex < userStories.length - 1) {
+                renderStoryModal(userStories, currentIndex + 1, true);
+            } else {
+                viewStoryModal.classList.replace('flex', 'hidden');
+                clearInterval(storyInterval);
+            }
+        }, 5000);
+    };
     
     document.getElementById('prev-story-btn').addEventListener('click', () => {
         const userId = viewStoryModal.dataset.userId;
@@ -516,7 +516,7 @@ const renderStoryModal = (userStories, currentIndex, isAutoAdvance = false) => {
             `;
             userSearchResults.appendChild(resultEl);
         });
-        userSearchResults.classList.add('hidden');
+        userSearchResults.classList.remove('hidden');
     };
 
     const renderSinglePostFeedModal = (post) => {
@@ -554,6 +554,7 @@ const renderStoryModal = (userStories, currentIndex, isAutoAdvance = false) => {
         feedSinglePostModal.classList.replace('hidden', 'flex');
         lucide.createIcons();
     };
+    
 
     const renderSinglePostProfileModal = (post) => {
         const postContent = document.getElementById('profile-single-post-dynamic-area');
