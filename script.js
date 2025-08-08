@@ -190,6 +190,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="text-sm mt-1"><span class="username-link" data-user-id="${post.user._id}">${getUsername(post.user)}</span> ${post.caption}</p>
                     <div class="text-sm mt-2 space-y-2 feed-comments-section">${firstCommentHtml}</div>
                     ${viewMoreCommentsHtml}
+                    <form class="comment-form flex items-center mt-2 border-t border-gray-200 dark:border-zinc-800 pt-2 relative" data-post-id="${post._id}">
+                        <input type="text" placeholder="Add a comment..." class="feed-comment-input w-full text-sm border-none focus:ring-0 bg-transparent dark:text-gray-200">
+                        <button type="submit" class="text-blue-500 font-semibold text-sm">Post</button>
+                    </form>
                 </div>`;
             container.appendChild(postEl);
         });
@@ -395,6 +399,88 @@ document.addEventListener('DOMContentLoaded', () => {
         createStoryModal.classList.replace('hidden', 'flex');
     });
 
+    const renderProfilePostsGrid = (posts) => {
+        const profilePostsGrid = document.getElementById('profile-posts-grid');
+        profilePostsGrid.innerHTML = '';
+        if (posts.length === 0) {
+            profilePostsGrid.innerHTML = '<p class="col-span-3 text-center text-gray-500">No posts yet.</p>';
+        } else {
+            posts.forEach(post => {
+                const postEl = document.createElement('div');
+                postEl.className = "relative group profile-post-item";
+                postEl.dataset.postId = post._id;
+                const isLiked = post.likes.includes(currentUser._id);
+                const likeIconStyle = isLiked ? 'style="fill: red; color: red;"' : '';
+                const isOwner = post.user._id === currentUser._id;
+                let ownerButtons = '';
+                if (isOwner) {
+                    ownerButtons = `
+                        <div class="absolute top-2 right-2 z-10">
+                            <div class="relative">
+                                <button class="post-options-btn text-white"><i data-lucide="more-horizontal" class="h-5 w-5"></i></button>
+                                <div class="post-options-dropdown hidden absolute right-0 mt-2 w-32 bg-white dark:bg-zinc-800 rounded-md shadow-lg py-1 z-20">
+                                    <button class="edit-post-btn block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700" data-post-id="${post._id}">Edit</button>
+                                    <button class="delete-post-btn block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-zinc-700" data-post-id="${post._id}">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                postEl.innerHTML = `${ownerButtons}<img src="${post.imageUrl}" onerror="this.onerror=null;this.src='https://placehold.co/300x300/cccccc/666666?text=Post';" class="w-full h-full object-cover aspect-square cursor-pointer"><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center space-x-4 text-white opacity-0 group-hover:opacity-100 transition-opacity"><span class="flex items-center"><i data-lucide="heart" class="h-5 w-5 mr-1" ${likeIconStyle}></i>${post.likes.length}</span><span class="flex items-center"><i data-lucide="message-circle" class="h-5 w-5 mr-1"></i>${post.comments.length}</span></div>`;
+                profilePostsGrid.appendChild(postEl);
+            });
+        }
+        lucide.createIcons();
+    };
+
+    const showProfilePosts = async (userId) => {
+        const profilePostsGrid = document.getElementById('profile-posts-grid');
+        profilePostsGrid.innerHTML = `
+            <div class="col-span-3 text-center">
+                <div class="grid grid-cols-3 gap-1 md:gap-4">
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                </div>
+            </div>`;
+        try {
+            const postsRes = await fetchWithAuth(`${API_URL}/api/posts/user/${userId}`);
+            if (!postsRes.ok) throw new Error('Failed to fetch posts.');
+            const posts = await postsRes.json();
+            renderProfilePostsGrid(posts);
+        } catch (error) {
+            console.error('Error fetching profile posts:', error);
+            profilePostsGrid.innerHTML = `<p class="col-span-3 text-center text-red-500">Failed to load posts.</p>`;
+        }
+    };
+
+    const showBookmarkedPosts = async () => {
+        const profilePostsGrid = document.getElementById('profile-posts-grid');
+        profilePostsGrid.innerHTML = `
+            <div class="col-span-3 text-center">
+                <div class="grid grid-cols-3 gap-1 md:gap-4">
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                    <div class="w-full h-40 bg-gray-200 dark:bg-zinc-700 animate-pulse"></div>
+                </div>
+            </div>`;
+        try {
+            const res = await fetchWithAuth(`${API_URL}/api/posts/bookmarks/${currentUser._id}`);
+            if (!res.ok) throw new Error('Failed to fetch bookmarks');
+            const bookmarkedPosts = await res.json();
+            renderProfilePostsGrid(bookmarkedPosts);
+        } catch (error) {
+            console.error("Could not fetch bookmarks:", error);
+            profilePostsGrid.innerHTML = `<p class="col-span-3 text-center text-red-500">Failed to load saved posts.</p>`;
+        }
+    };
+
     const renderProfile = (user, posts) => {
         const isFollowing = currentUser.following.includes(user._id);
         const profilePicUrl = getProfilePic(user, 150);
@@ -402,63 +488,16 @@ document.addEventListener('DOMContentLoaded', () => {
         profileView.innerHTML = `
             <main class="container mx-auto max-w-4xl p-4 md:p-8 text-black dark:text-gray-200">
                 <header class="flex flex-col md:flex-row items-center md:items-start mb-8"><div class="w-20 h-20 md:w-36 md:h-36 flex-shrink-0 mr-0 md:mr-16"><img src="${profilePicUrl}" class="rounded-full w-full h-full object-cover"></div><section class="text-center md:text-left mt-4 md:mt-0"><div class="flex items-center justify-center md:justify-start space-x-4 mb-4"><h2 class="text-2xl font-light">${getUsername(user)}</h2> ${actionButtonHtml} <button><i data-lucide="settings" class="h-6 w-6"></i></button></div><div class="flex justify-center md:justify-start space-x-8 mb-4"><div><span class="font-semibold">${posts.length}</span> posts</div><div><span class="font-semibold" id="follower-count">${user.followers.length}</span> followers</div><div><span class="font-semibold">${user.following.length}</span> following</div></div><div><h1 class="font-semibold">${user.fullName}</h1><p class="text-gray-500 dark:text-gray-400 whitespace-pre-wrap">${user.bio || 'No bio yet.'}</p></div></section></header>
-                <div class="border-t border-gray-300 dark:border-zinc-800"><div class="flex justify-center text-gray-500 dark:text-gray-400 text-sm font-semibold -mt-px"><a href="#" class="profile-tab active flex items-center space-x-2 p-3 text-black dark:text-gray-200"><i data-lucide="grid-3x3"></i><span>POSTS</span></a></div></div>
+                <div class="border-t border-gray-300 dark:border-zinc-800">
+                    <div class="flex justify-center text-gray-500 dark:text-gray-400 text-sm font-semibold -mt-px">
+                        <a href="#" id="profile-posts-tab" class="profile-tab active flex items-center space-x-2 p-3 text-black dark:text-gray-200"><i data-lucide="grid-3x3"></i><span>POSTS</span></a>
+                        <a href="#" id="profile-bookmarks-tab" class="profile-tab flex items-center space-x-2 p-3"><i data-lucide="bookmark"></i><span>SAVED</span></a>
+                    </div>
+                </div>
                 <div id="profile-posts-grid" class="grid grid-cols-3 gap-1 md:gap-4"></div>
             </main>`;
-        const profilePostsGrid = document.getElementById('profile-posts-grid');
-        posts.forEach(post => {
-            const postEl = document.createElement('div');
-            postEl.className = "relative group profile-post-item";
-            postEl.dataset.postId = post._id;
-            const isLiked = post.likes.includes(currentUser._id);
-            const likeIconStyle = isLiked ? 'style="fill: red; color: red;"' : '';
-            const isOwner = post.user._id === currentUser._id;
-
-            let ownerButtons = '';
-            if (isOwner) {
-                ownerButtons = `
-                    <div class="absolute top-2 right-2 z-10">
-                        <div class="relative">
-                            <button class="post-options-btn text-white"><i data-lucide="more-horizontal" class="h-5 w-5"></i></button>
-                            <div class="post-options-dropdown hidden absolute right-0 mt-2 w-32 bg-white dark:bg-zinc-800 rounded-md shadow-lg py-1 z-20">
-                                <button class="edit-post-btn block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700" data-post-id="${post._id}">Edit</button>
-                                <button class="delete-post-btn block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-zinc-700" data-post-id="${post._id}">Delete</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            postEl.innerHTML = `${ownerButtons}<img src="${post.imageUrl}" onerror="this.onerror=null;this.src='https://placehold.co/300x300/cccccc/666666?text=Post';" class="w-full h-full object-cover aspect-square cursor-pointer"><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center space-x-4 text-white opacity-0 group-hover:opacity-100 transition-opacity"><span class="flex items-center"><i data-lucide="heart" class="h-5 w-5 mr-1" ${likeIconStyle}></i>${post.likes.length}</span><span class="flex items-center"><i data-lucide="message-circle" class="h-5 w-5 mr-1"></i>${post.comments.length}</span></div>`;
-            profilePostsGrid.appendChild(postEl);
-        });
+        renderProfilePostsGrid(posts);
         lucide.createIcons();
-    };
-
-    const renderBookmarks = (posts) => {
-        bookmarksView.innerHTML = `
-            <main class="container mx-auto max-w-4xl p-4 md:p-8 text-black dark:text-gray-200">
-                <header class="mb-8"><h1 class="text-3xl font-light">Saved</h1></header>
-                <div id="bookmarks-posts-grid" class="grid grid-cols-3 gap-1 md:gap-4"></div>
-            </main>
-        `;
-        const bookmarksPostsGrid = document.getElementById('bookmarks-posts-grid');
-        if (posts.length === 0) {
-            bookmarksPostsGrid.innerHTML = '<p class="col-span-3 text-center text-gray-500">No saved posts yet.</p>';
-        } else {
-            posts.forEach(post => {
-                if (!post || !post.user) return;
-                const postEl = document.createElement('div');
-                postEl.className = "relative group bookmarks-post-item";
-                postEl.dataset.postId = post._id;
-                const isLiked = post.likes.includes(currentUser._id);
-                const likeIconStyle = isLiked ? 'style="fill: red; color: red;"' : '';
-                postEl.innerHTML = `<img src="${post.imageUrl}" onerror="this.onerror=null;this.src='https://placehold.co/300x300/cccccc/666666?text=Post';" class="w-full h-full object-cover aspect-square cursor-pointer"><div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center space-x-4 text-white opacity-0 group-hover:opacity-100 transition-opacity"><span class="flex items-center"><i data-lucide="heart" class="h-5 w-5 mr-1" ${likeIconStyle}></i>${post.likes.length}</span><span class="flex items-center"><i data-lucide="message-circle" class="h-5 w-5 mr-1"></i>${post.comments.length}</span></div>`;
-                bookmarksPostsGrid.appendChild(postEl);
-            });
-        }
-        lucide.createIcons();
-        showView('bookmarks');
     };
 
     const renderSuggestions = (users) => {
@@ -699,7 +738,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const followBtn = e.target.closest('.follow-btn');
             const usernameLink = e.target.closest('.username-link');
             const profilePostItem = e.target.closest('.profile-post-item');
-            const bookmarksPostItem = e.target.closest('.bookmarks-post-item');
             const sidebarProfileLink = e.target.closest('#sidebar-profile-link');
             const editProfileBtn = e.target.closest('#edit-profile-btn');
             const conversationItem = e.target.closest('.conversation-item');
@@ -721,10 +759,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const postOptionsBtn = e.target.closest('.post-options-btn');
             const editPostBtn = e.target.closest('.edit-post-btn');
             const deletePostBtn = e.target.closest('.delete-post-btn');
-            const bookmarkBtn = e.target.closest('.feed-bookmark-btn, .profile-bookmark-btn, .bookmarks-bookmark-btn');
+            const bookmarkBtn = e.target.closest('.feed-bookmark-btn, .profile-bookmark-btn');
             const storyItem = e.target.closest('.story-item');
             const myStoryBtn = e.target.closest('#create-story-btn');
             const allDropdowns = document.querySelectorAll('.post-options-dropdown:not(.hidden)');
+            const profilePostsTab = e.target.closest('#profile-posts-tab');
+            const profileBookmarksTab = e.target.closest('#profile-bookmarks-tab');
 
             if (postOptionsBtn) {
                 e.stopPropagation();
@@ -738,19 +778,34 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (allDropdowns.length > 0 && !e.target.closest('.post-options-dropdown')) {
                 allDropdowns.forEach(d => d.classList.add('hidden'));
             }
+            
+            if (profilePostsTab) {
+                e.preventDefault();
+                document.querySelectorAll('.profile-tab').forEach(tab => tab.classList.remove('active', 'text-black', 'dark:text-gray-200'));
+                profilePostsTab.classList.add('active', 'text-black', 'dark:text-gray-200');
+                showProfilePosts(profileView.dataset.userId);
+            }
+
+            if (profileBookmarksTab) {
+                e.preventDefault();
+                document.querySelectorAll('.profile-tab').forEach(tab => tab.classList.remove('active', 'text-black', 'dark:text-gray-200'));
+                profileBookmarksTab.classList.add('active', 'text-black', 'dark:text-gray-200');
+                showBookmarkedPosts();
+            }
+
 
             if (likeBtn) {
-                const postCard = likeBtn.closest('.feed-post-card, .profile-post-card, .bookmarks-post-card');
+                const postCard = likeBtn.closest('.feed-post-card, .profile-post-card');
                 if (!postCard) return;
                 const postId = postCard.dataset.postId;
                 try {
                     const res = await fetchWithAuth(`${API_URL}/api/posts/like/${postId}`, { method: 'PUT' });
                     if (!res.ok) throw new Error('Like failed');
                     const newLikes = await res.json();
-                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-likes-count, .profile-post-card[data-post-id="${postId}"] .profile-likes-count, .bookmarks-post-card[data-post-id="${postId}"] .bookmarks-likes-count`).forEach(el => {
+                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-likes-count, .profile-post-card[data-post-id="${postId}"] .profile-likes-count`).forEach(el => {
                         el.textContent = `${newLikes.length} likes`;
                     });
-                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-like-btn, .profile-post-card[data-post-id="${postId}"] .profile-like-btn, .bookmarks-post-card[data-post-id="${postId}"] .bookmarks-like-btn`).forEach(btn => {
+                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-like-btn, .profile-post-card[data-post-id="${postId}"] .profile-like-btn`).forEach(btn => {
                         btn.classList.toggle('liked');
                         const heartIcon = btn.querySelector('svg');
                         if (heartIcon) {
@@ -767,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (bookmarkBtn) {
-                const postCard = bookmarkBtn.closest('.feed-post-card, .profile-post-card, .bookmarks-post-card');
+                const postCard = bookmarkBtn.closest('.feed-post-card, .profile-post-card');
                 if (!postCard) return;
                 const postId = postCard.dataset.postId;
                 const isBookmarked = currentUser.bookmarks.some(bookmarkId => bookmarkId.toString() === postId);
@@ -778,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const updatedBookmarks = await res.json();
                     currentUser.bookmarks = updatedBookmarks;
 
-                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-bookmark-btn, .profile-post-card[data-post-id="${postId}"] .profile-bookmark-btn, .bookmarks-post-card[data-post-id="${postId}"] .bookmarks-bookmark-btn`).forEach(btn => {
+                    document.querySelectorAll(`.feed-post-card[data-post-id="${postId}"] .feed-bookmark-btn, .profile-post-card[data-post-id="${postId}"] .profile-bookmark-btn`).forEach(btn => {
                         const bookmarkIcon = btn.querySelector('svg');
                         if (bookmarkIcon) {
                             if (action === 'add') {
@@ -791,9 +846,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
-                    if (bookmarksView.classList.contains('hidden') === false) {
-                        const updatedBookmarksPosts = postsCache.filter(post => currentUser.bookmarks.includes(post._id));
-                        renderBookmarks(updatedBookmarksPosts);
+                    if (document.getElementById('profile-bookmarks-tab').classList.contains('active')) {
+                        showBookmarkedPosts();
                     }
 
                 } catch (error) {
@@ -804,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (shareBtn) {
                 e.preventDefault();
-                const postCard = shareBtn.closest('.feed-post-card, .profile-post-card, .bookmarks-post-card');
+                const postCard = shareBtn.closest('.feed-post-card, .profile-post-card');
                 if (!postCard) return;
 
                 const postId = postCard.dataset.postId;
@@ -860,11 +914,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const post = postsCache.find(p => p._id === postId);
                     if (post) renderSinglePostProfileModal(post);
                 }
-            }
-            if (bookmarksPostItem) {
-                const postId = bookmarksPostItem.dataset.postId;
-                const post = postsCache.find(p => p._id === postId);
-                if (post) renderSinglePostBookmarksModal(post);
             }
             
             if (myStoryBtn) {
@@ -1104,6 +1153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const messageForm = e.target.closest('#message-form');
             const editPostForm = e.target.closest('#editPostForm');
             const createStoryForm = e.target.closest('#createStoryForm');
+            const mainFeedCommentForm = e.target.closest('#posts-container .comment-form');
 
             const singlePostFeedCommentForm = e.target.closest('#single-post-feed-comment-form');
             const singlePostProfileCommentForm = e.target.closest('#single-post-profile-comment-form');
@@ -1113,7 +1163,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const profileModalCommentForm = e.target.closest('#profile-modal-comment-form');
             const bookmarksModalCommentForm = e.target.closest('#bookmarks-modal-comment-form');
 
-            if (singlePostFeedCommentForm) {
+            if (mainFeedCommentForm) {
+                e.preventDefault();
+                const postId = mainFeedCommentForm.dataset.postId;
+                const input = mainFeedCommentForm.querySelector('.feed-comment-input');
+                const text = input.value;
+                if (!text) return;
+
+                try {
+                    const res = await fetchWithAuth(`${API_URL}/api/posts/comment/${postId}`, {
+                        method: 'POST',
+                        body: JSON.stringify({ text })
+                    });
+                    if (!res.ok) throw new Error('Comment failed');
+                    const updatedComments = await res.json();
+
+                    const postIndex = postsCache.findIndex(p => p._id === postId);
+                    if (postIndex !== -1) {
+                        postsCache[postIndex].comments = updatedComments;
+                    }
+
+                    input.value = '';
+                    renderPosts(postsCache, postsContainer);
+                } catch (error) {
+                    console.error(error);
+                    alert('Failed to post comment.');
+                }
+            }
+            else if (singlePostFeedCommentForm) {
                 e.preventDefault();
                 const postCard = singlePostFeedCommentForm.closest('.feed-post-card, .feed-single-post-dynamic-area');
                 const postId = postCard.dataset.postId;
@@ -1443,18 +1520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logo-home-link').addEventListener('click', (e) => { e.preventDefault(); initializeApp(); });
     document.getElementById('nav-profile-trigger').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
     document.getElementById('nav-create-post').addEventListener('click', (e) => { e.preventDefault(); createPostModal.classList.replace('hidden', 'flex'); });
-    document.getElementById('nav-bookmarks-link').addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetchWithAuth(`${API_URL}/api/posts/bookmarks/${currentUser._id}`);
-            if (!res.ok) throw new Error('Failed to fetch bookmarks');
-            const bookmarkedPosts = await res.json();
-            renderBookmarks(bookmarkedPosts);
-        } catch (error) {
-            console.error("Could not fetch bookmarks:", error);
-            alert('Failed to load saved posts.');
-        }
-    });
+    
     document.getElementById('nav-chat').addEventListener('click', async (e) => {
         e.preventDefault();
         try {
@@ -1492,6 +1558,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalForm) delete modalForm.dataset.parentId;
     };
 
+    const resetCreatePostForm = () => {
+        document.getElementById('postImageFile').value = '';
+        document.getElementById('postCaption').value = '';
+        document.getElementById('createPostButton').disabled = false;
+        document.getElementById('createPostButton').textContent = 'Share';
+    };
+
     document.addEventListener('click', (e) => {
         if (e.target.closest('#edit-profile-modal .modal-cancel-button') || e.target.id === 'edit-profile-modal') {
             editProfileModal.classList.replace('flex', 'hidden');
@@ -1524,6 +1597,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (e.target.closest('#create-post-modal .modal-cancel-button') || e.target.id === 'create-post-modal') {
             createPostModal.classList.replace('flex', 'hidden');
+            resetCreatePostForm();
         }
         if (e.target.closest('#create-story-modal .modal-cancel-button') || e.target.id === 'create-story-modal') {
             createStoryModal.classList.replace('flex', 'hidden');
