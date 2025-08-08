@@ -620,7 +620,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (shareBtn) { e.preventDefault(); shareModal.classList.replace('hidden', 'flex'); }
+            if (shareBtn) {
+                e.preventDefault();
+                // Get the post ID from the closest post card
+                const postCard = shareBtn.closest('.feed-post-card, .profile-post-card, .bookmarks-post-card');
+                if (!postCard) return;
+
+                const postId = postCard.dataset.postId;
+                const post = postsCache.find(p => p._id === postId);
+
+                if (post) {
+                    const baseUrl = document.body.dataset.baseUrl;
+                    const postLink = `${baseUrl}/p/${post._id}`; // Example of a post link
+                    const shareText = `Check out this post from ${post.user.username}: ${post.caption.substring(0, 50)}... ${postLink}`;
+                    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+                    window.open(whatsappUrl, '_blank');
+                }
+            }
 
             if (followBtn) {
                 const userId = followBtn.dataset.userId;
@@ -1282,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bookmarksCommentModal.classList.replace('flex', 'hidden');
             resetCommentModal(document.getElementById('bookmarks-modal-comment-form'), document.getElementById('bookmarks-modal-comment-input'));
         }
-        
+
         // Add listeners for create and edit post modals
         if (e.target.closest('#create-post-modal .modal-cancel-button') || e.target.id === 'create-post-modal') {
             createPostModal.classList.replace('flex', 'hidden');
