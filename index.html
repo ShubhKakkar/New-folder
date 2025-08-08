@@ -103,7 +103,7 @@
             </main>
         </div>
     </div>
-    
+
     <header id="page-header"
         class="bg-white dark:bg-black border-b border-gray-300 dark:border-zinc-800 sticky top-0 z-10 hidden">
         <div class="container mx-auto px-4">
@@ -153,6 +153,18 @@
     <div id="home-view" class="hidden">
         <main class="container mx-auto py-8 px-4 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl">
             <div class="md:col-span-2">
+                <div id="stories-container"
+                    class="bg-white dark:bg-black border border-gray-300 dark:border-zinc-800 rounded-sm p-4 mb-8">
+                    <div id="stories-list" class="flex overflow-x-auto space-x-4 no-scrollbar">
+                        <div id="create-story-btn" class="flex-shrink-0 w-20 text-center cursor-pointer">
+                            <div
+                                class="w-16 h-16 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center p-1 mx-auto">
+                                <i data-lucide="plus" class="h-8 w-8 text-gray-500"></i>
+                            </div>
+                            <p class="text-xs mt-1 truncate dark:text-white">New Story</p>
+                        </div>
+                    </div>
+                </div>
                 <div id="posts-container" class="space-y-8"></div>
             </div>
             <div class="hidden md:block">
@@ -203,7 +215,7 @@
             </div>
         </main>
     </div>
-    
+
     <div id="create-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-md relative">
             <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i
@@ -231,6 +243,60 @@
         </div>
     </div>
 
+    <div id="create-story-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-md relative">
+            <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300">
+                <i data-lucide="x" class="h-6 w-6"></i>
+            </button>
+            <h3 class="text-lg font-bold text-center mb-4 text-black dark:text-white">Create new story</h3>
+            <form id="createStoryForm">
+                <div class="space-y-4">
+                    <label for="storyImageFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Upload Image
+                    </label>
+                    <input type="file" id="storyImageFile" accept="image/*"
+                        class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200">
+                </div>
+                <div class="flex justify-end space-x-3 mt-4">
+                    <button type="button"
+                        class="modal-cancel-button px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-700 rounded-md">Cancel</button>
+                    <button type="submit" id="createStoryButton" class="action-button enabled px-4 py-2 text-sm">Share
+                        Story</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="view-story-modal"
+        class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop bg-black bg-opacity-75">
+        <div id="story-modal-content" class="w-full max-w-sm h-full max-h-[80vh] relative rounded-lg overflow-hidden flex flex-col">
+            <button class="modal-cancel-button absolute top-4 right-4 text-white z-10">
+                <i data-lucide="x" class="h-8 w-8"></i>
+            </button>
+            <button id="prev-story-btn"
+                class="absolute left-4 top-1/2 -translate-y-1/2 text-white z-10 opacity-50 hover:opacity-100 transition-opacity">
+                <i data-lucide="chevron-left" class="h-10 w-10"></i>
+            </button>
+            <button id="next-story-btn"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-white z-10 opacity-50 hover:opacity-100 transition-opacity">
+                <i data-lucide="chevron-right" class="h-10 w-10"></i>
+            </button>
+            <div id="story-viewer" class="relative w-full h-full flex items-center justify-center bg-black">
+                </div>
+            <div id="story-progress-container"
+                class="absolute top-4 left-0 right-0 px-4 flex space-x-1 z-10 w-full max-w-[calc(100%-32px)] mx-auto"></div>
+            <div id="story-info"
+                class="absolute bottom-4 left-4 right-4 text-white z-10 flex items-center justify-between">
+                <div class="flex items-center">
+                    <img id="story-user-pic" class="w-10 h-10 rounded-full object-cover mr-2" />
+                    <span id="story-username" class="font-semibold"></span>
+                </div>
+                <button id="delete-story-btn" class="text-red-500 font-semibold text-sm hidden">Delete Story</button>
+                <button id="add-story-btn" class="text-white font-semibold text-sm hidden">Add Story</button>
+            </div>
+        </div>
+    </div>
+
     <div id="feed-single-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
         <div id="feed-single-post-content"
             class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-3xl h-4/5 flex relative">
@@ -243,10 +309,10 @@
     <div id="profile-single-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
         <div id="profile-single-post-content"
             class="bg-white dark:bg-black rounded-lg shadow-xl w-full max-w-3xl h-4/5 flex relative">
-        <button class="profile-modal-close-button absolute top-4 right-4 text-black dark:text-white z-10">
-            <i data-lucide="x" class="h-8 w-8"></i>
-        </button>
-        <div id="profile-single-post-dynamic-area" class="w-full flex"></div>
+            <button class="profile-modal-close-button absolute top-4 right-4 text-black dark:text-white z-10">
+                <i data-lucide="x" class="h-8 w-8"></i>
+            </button>
+            <div id="profile-single-post-dynamic-area" class="w-full flex"></div>
         </div>
     </div>
     <div id="edit-profile-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
@@ -279,7 +345,7 @@
             </form>
         </div>
     </div>
-    
+
     <div id="edit-post-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 w-full max-w-md relative">
             <button class="modal-cancel-button absolute top-2 right-2 text-gray-500 dark:text-gray-300"><i
@@ -295,7 +361,8 @@
                     <div class="relative">
                         <textarea id="editPostCaption" placeholder="Edit caption..." rows="4"
                             class="form-input w-full bg-gray-50 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 dark:text-gray-200"></textarea>
-                        <button type="button" id="edit-post-emoji-btn" class="absolute bottom-2 right-2 text-gray-500">🙂</button>
+                        <button type="button" id="edit-post-emoji-btn"
+                            class="absolute bottom-2 right-2 text-gray-500">🙂</button>
                     </div>
                 </div>
                 <emoji-picker id="edit-post-emoji-picker" class="hidden w-full"></emoji-picker>

@@ -3,14 +3,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
     let postsCache = [];
     let usersCache = [];
+    let storiesCache = [];
     let onlineUsers = new Set();
     let socket = null;
 
-    // Cloudinary configuration (replace with your actual details)
     const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dndkskewk/image/upload';
     const CLOUDINARY_UPLOAD_PRESET = 'uploads';
 
-    // DOM Element Selectors
     const authContainer = document.getElementById('auth-container');
     const pageHeader = document.getElementById('page-header');
     const homeView = document.getElementById('home-view');
@@ -20,30 +19,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const signupView = document.getElementById('signup-view');
     const postsContainer = document.getElementById('posts-container');
     const suggestionsContainer = document.getElementById('suggestions-container');
+    const storiesList = document.getElementById('stories-list');
     const createPostModal = document.getElementById('create-post-modal');
+    const createStoryModal = document.getElementById('create-story-modal');
+    const viewStoryModal = document.getElementById('view-story-modal');
     const shareModal = document.getElementById('share-modal');
 
-    // Separate Modals for Feed
     const feedSinglePostModal = document.getElementById('feed-single-post-modal');
     const feedCommentModal = document.getElementById('feed-comment-modal');
 
-    // Separate Modals for Profile
     const profileSinglePostModal = document.getElementById('profile-single-post-modal');
     const profileCommentModal = document.getElementById('profile-comment-modal');
 
-    // New Modals for Bookmarks
     const bookmarksSinglePostModal = document.getElementById('bookmarks-single-post-modal');
     const bookmarksCommentModal = document.getElementById('bookmarks-comment-modal');
 
     const editProfileModal = document.getElementById('edit-profile-modal');
-    // New Edit Post Modal
     const editPostModal = document.getElementById('edit-post-modal');
     const chatView = document.getElementById('chat-view');
     const userSearchInput = document.getElementById('user-search-input');
     const userSearchResults = document.getElementById('user-search-results');
     const conversationsList = document.getElementById('conversations-list');
 
-    // Core App Logic
     const showView = (viewToShow) => {
         [authContainer, homeView, profileView, bookmarksView, pageHeader, chatView].forEach(el => el.classList.add('hidden'));
         if (viewToShow === 'auth') {
@@ -70,38 +67,29 @@ document.addEventListener('DOMContentLoaded', () => {
         let compressedFile = file;
         const maxSizeMB = 5;
 
-        // Check if the file size is greater than 5MB
         if (file.size > maxSizeMB * 1024 * 1024) {
             console.log('File size exceeds 5MB. Compressing...');
             try {
-                // Use pica for high-quality resizing and compression
                 const pica = window.pica();
-
-                // Create an off-screen canvas to draw the image
                 const img = new Image();
                 const imageBitmap = await createImageBitmap(file);
-
                 const canvas = document.createElement('canvas');
                 canvas.width = imageBitmap.width;
                 canvas.height = imageBitmap.height;
 
                 await pica.resize(imageBitmap, canvas, {
-                    // Adjust the quality to reduce file size. 
-                    // 0.8 is a good balance between quality and size.
                     quality: 0.8,
                     alpha: true
                 });
 
-                // Convert the canvas content back to a Blob (file)
                 compressedFile = await pica.toBlob(canvas, 'image/jpeg');
 
                 console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
                 console.log(`Compressed size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
-
             } catch (error) {
                 console.error('Error during image compression:', error);
                 alert('Failed to compress image. Uploading original file.');
-                compressedFile = file; // Fallback to original file
+                compressedFile = file;
             }
         }
 
@@ -128,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const getUsername = (user) => (user && user.username) ? user.username : 'unknown';
     const getProfilePic = (user, size = 32) => (user && user.profilePicture) ? user.profilePicture : `https://placehold.co/${size}x${size}/EFEFEF/AAAAAA?text=${getInitials(user)}`;
 
-    // Re-usable comment rendering logic
     const renderComments = (comments, isReply = false) => {
         let html = '';
         comments.forEach((comment, index) => {
@@ -173,12 +160,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return html;
     };
 
-    // Renders all comments in a modal
     const renderCommentsForModal = (comments, container) => {
-        container.innerHTML = renderComments(comments, true); // Pass true to show all comments
+        container.innerHTML = renderComments(comments, true);
     };
 
-    // Renders posts for the main feed
     const renderPosts = (posts, container) => {
         container.innerHTML = '';
         posts.forEach(post => {
@@ -189,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
             postEl.className = "bg-white dark:bg-black border border-gray-300 dark:border-zinc-800 rounded-sm feed-post-card";
             postEl.dataset.postId = post._id;
 
-            // Show only the first comment initially
             const firstCommentHtml = renderComments(post.comments.slice(0, 1));
             const viewMoreCommentsHtml = post.comments.length > 1 ? `<p class="text-gray-500 text-sm mt-2 cursor-pointer feed-view-comments-btn">View all ${post.comments.length} comments</p>` : (post.comments.length === 1 ? `<p class="text-gray-500 text-sm mt-2 cursor-pointer feed-view-comments-btn">View 1 comment</p>` : '');
 
@@ -212,6 +196,205 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
+    const renderStories = () => {
+        storiesList.innerHTML = '';
+        
+        // Group stories by user
+        const groupedStories = storiesCache.reduce((acc, story) => {
+            if (!acc[story.user._id]) {
+                acc[story.user._id] = { user: story.user, stories: [] };
+            }
+            acc[story.user._id].stories.push(story);
+            return acc;
+        }, {});
+
+        // Sort stories within each group by creation date (newest last)
+        Object.keys(groupedStories).forEach(userId => {
+            groupedStories[userId].stories.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        });
+
+        // Filter stories to only show self and followed users
+        const storiesToRender = Object.values(groupedStories).filter(group => 
+            group.user._id === currentUser._id || currentUser.following.includes(group.user._id)
+        );
+
+        // Sort all story groups by the creation date of their latest story (newest first)
+        storiesToRender.sort((a, b) => {
+            const lastStoryA = a.stories[a.stories.length - 1];
+            const lastStoryB = b.stories[b.stories.length - 1];
+            return new Date(lastStoryB.createdAt) - new Date(lastStoryA.createdAt);
+        });
+
+        const myStoryGroup = storiesToRender.find(group => group.user._id === currentUser._id);
+        const createStoryEl = document.createElement('div');
+        createStoryEl.id = 'create-story-btn';
+        createStoryEl.className = 'flex-shrink-0 w-20 text-center cursor-pointer';
+
+        if (myStoryGroup) {
+            createStoryEl.dataset.userId = myStoryGroup.user._id;
+            createStoryEl.innerHTML = `
+                <div class="w-16 h-16 rounded-full border-2 border-pink-500 p-1 mx-auto overflow-hidden flex-shrink-0">
+                    <img src="${getProfilePic(myStoryGroup.user)}" class="w-full h-full object-cover">
+                </div>
+                <p class="text-xs mt-1 truncate dark:text-white">Your Story</p>
+            `;
+        } else {
+            createStoryEl.innerHTML = `
+                <div class="w-16 h-16 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center p-1 mx-auto flex-shrink-0">
+                    <i data-lucide="plus" class="h-8 w-8 text-gray-500"></i>
+                </div>
+                <p class="text-xs mt-1 truncate dark:text-white">New Story</p>
+            `;
+        }
+        storiesList.appendChild(createStoryEl);
+
+        storiesToRender.forEach(group => {
+            if (group.user._id === currentUser._id) {
+                return;
+            }
+            const storyEl = document.createElement('div');
+            storyEl.className = 'flex-shrink-0 w-20 text-center cursor-pointer story-item';
+            storyEl.dataset.userId = group.user._id;
+            storyEl.innerHTML = `
+                <div class="w-16 h-16 rounded-full border-2 border-pink-500 p-1 mx-auto overflow-hidden flex-shrink-0">
+                    <img src="${getProfilePic(group.user)}" class="w-full h-full object-cover">
+                </div>
+                <p class="text-xs mt-1 truncate dark:text-white">${getUsername(group.user)}</p>
+            `;
+            storiesList.appendChild(storyEl);
+        });
+        
+        lucide.createIcons();
+    };
+
+    let storyInterval;
+const renderStoryModal = (userStories, currentIndex, isAutoAdvance = false) => {
+    clearInterval(storyInterval);
+    if (userStories.length === 0) {
+        viewStoryModal.classList.replace('flex', 'hidden');
+        return;
+    }
+    const story = userStories[currentIndex];
+    const storyViewer = document.getElementById('story-viewer');
+    const storyProgressContainer = document.getElementById('story-progress-container');
+    const storyUserPic = document.getElementById('story-user-pic');
+    const storyUsername = document.getElementById('story-username');
+    const deleteStoryBtn = document.getElementById('delete-story-btn');
+    const addStoryBtn = document.getElementById('add-story-btn');
+    const prevStoryBtn = document.getElementById('prev-story-btn');
+    const nextStoryBtn = document.getElementById('next-story-btn');
+    
+    viewStoryModal.dataset.userId = userStories[0].user._id;
+    viewStoryModal.dataset.storyIndex = currentIndex;
+    viewStoryModal.dataset.storyId = story._id;
+
+    storyViewer.innerHTML = `<img src="${story.imageUrl}" class="w-full h-full object-contain mx-auto" />`;
+    storyUserPic.src = getProfilePic(story.user);
+    storyUsername.textContent = getUsername(story.user);
+
+    const isMyStory = story.user._id === currentUser._id;
+    if (isMyStory) {
+        deleteStoryBtn.classList.remove('hidden');
+        deleteStoryBtn.dataset.storyId = story._id;
+        addStoryBtn.classList.remove('hidden');
+    } else {
+        deleteStoryBtn.classList.add('hidden');
+        addStoryBtn.classList.add('hidden');
+    }
+    
+    if (userStories.length > 1) {
+        prevStoryBtn.style.visibility = currentIndex > 0 ? 'visible' : 'hidden';
+        nextStoryBtn.style.visibility = currentIndex < userStories.length - 1 ? 'visible' : 'hidden';
+    } else {
+        prevStoryBtn.style.visibility = 'hidden';
+        nextStoryBtn.style.visibility = 'hidden';
+    }
+
+    storyProgressContainer.innerHTML = userStories.map((s, i) => `
+        <div class="flex-1 h-1 bg-white bg-opacity-50 rounded-full overflow-hidden">
+            <div class="h-full bg-white progress-bar" style="transform-origin: left; transform: scaleX(0); transition: transform 4.9s linear;"></div>
+        </div>
+    `).join('');
+
+    // Fill past progress bars and set up the current one
+    for (let i = 0; i < currentIndex; i++) {
+        const pastBar = storyProgressContainer.children[i].querySelector('.progress-bar');
+        if (pastBar) {
+            pastBar.style.transform = 'scaleX(1)';
+            pastBar.style.transition = 'none';
+        }
+    }
+
+    const activeProgressBar = storyProgressContainer.children[currentIndex].querySelector('.progress-bar');
+    if (activeProgressBar) {
+        requestAnimationFrame(() => {
+            activeProgressBar.style.transform = 'scaleX(1)';
+        });
+    }
+
+    viewStoryModal.classList.replace('hidden', 'flex');
+
+    storyInterval = setTimeout(() => {
+        if (currentIndex < userStories.length - 1) {
+            renderStoryModal(userStories, currentIndex + 1, true);
+        } else {
+            viewStoryModal.classList.replace('flex', 'hidden');
+            clearInterval(storyInterval);
+        }
+    }, 5000);
+};
+    
+    document.getElementById('prev-story-btn').addEventListener('click', () => {
+        const userId = viewStoryModal.dataset.userId;
+        const currentIndex = parseInt(viewStoryModal.dataset.storyIndex, 10);
+        const userStories = storiesCache.filter(s => s.user._id === userId);
+        
+        if (currentIndex > 0) {
+            renderStoryModal(userStories, currentIndex - 1, true);
+        }
+    });
+
+    document.getElementById('next-story-btn').addEventListener('click', () => {
+        const userId = viewStoryModal.dataset.userId;
+        const currentIndex = parseInt(viewStoryModal.dataset.storyIndex, 10);
+        const userStories = storiesCache.filter(s => s.user._id === userId);
+        
+        if (currentIndex < userStories.length - 1) {
+            renderStoryModal(userStories, currentIndex + 1, true);
+        } else {
+            viewStoryModal.classList.replace('flex', 'hidden');
+        }
+    });
+    
+    document.getElementById('delete-story-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const storyId = e.target.closest('button').dataset.storyId;
+        if (confirm('Are you sure you want to delete this story?')) {
+            try {
+                const res = await fetchWithAuth(`${API_URL}/api/stories/${storyId}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed to delete story.');
+                
+                storiesCache = storiesCache.filter(s => s._id !== storyId);
+                
+                const userStories = storiesCache.filter(s => s.user._id === currentUser._id);
+                if (userStories.length > 0) {
+                    renderStoryModal(userStories, 0);
+                } else {
+                    viewStoryModal.classList.replace('flex', 'hidden');
+                    initializeApp();
+                }
+            } catch (error) {
+                console.error('Error deleting story:', error);
+                alert('Failed to delete story.');
+            }
+        }
+    });
+    
+    document.getElementById('add-story-btn').addEventListener('click', () => {
+        viewStoryModal.classList.add('hidden');
+        createStoryModal.classList.replace('hidden', 'flex');
+    });
+
     const renderProfile = (user, posts) => {
         const isFollowing = currentUser.following.includes(user._id);
         const profilePicUrl = getProfilePic(user, 150);
@@ -229,7 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
             postEl.dataset.postId = post._id;
             const isLiked = post.likes.includes(currentUser._id);
             const likeIconStyle = isLiked ? 'style="fill: red; color: red;"' : '';
-            // console.log(post)
             const isOwner = post.user._id === currentUser._id;
 
             let ownerButtons = '';
@@ -253,7 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
-    // Renders the bookmarks view
     const renderBookmarks = (posts) => {
         bookmarksView.innerHTML = `
             <main class="container mx-auto max-w-4xl p-4 md:p-8 text-black dark:text-gray-200">
@@ -335,10 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             userSearchResults.appendChild(resultEl);
         });
-        userSearchResults.classList.remove('hidden');
+        userSearchResults.classList.add('hidden');
     };
 
-    // Renders single post modal for feed posts
     const renderSinglePostFeedModal = (post) => {
         const postContent = document.getElementById('feed-single-post-dynamic-area');
         const isLiked = post.likes.includes(currentUser._id);
@@ -364,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <p class="font-semibold text-sm feed-likes-count">${post.likes.length} likes</p>
                     <form id="single-post-feed-comment-form" class="comment-form flex items-center mt-2 border-t border-gray-200 dark:border-zinc-800 pt-2 relative">
-                        <button type="button" class="absolute right-12 text-gray-500 feed-single-post-emoji-btn">😊</button>
+                        <button type="button" class="absolute right-12 text-gray-500 feed-single-post-emoji-btn">🙂</button>
                         <input type="text" placeholder="Add a comment..." class="feed-comment-input w-full text-sm border-none focus:ring-0 bg-transparent dark:text-gray-200">
                         <button type="submit" class="text-blue-500 font-semibold text-sm">Post</button>
                     </form>
@@ -375,7 +555,6 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
-    // Renders single post modal for profile posts
     const renderSinglePostProfileModal = (post) => {
         const postContent = document.getElementById('profile-single-post-dynamic-area');
         const isLiked = post.likes.includes(currentUser._id);
@@ -401,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <p class="font-semibold text-sm profile-likes-count">${post.likes.length} likes</p>
                     <form id="single-post-profile-comment-form" class="comment-form flex items-center mt-2 border-t border-gray-200 dark:border-zinc-800 pt-2 relative">
-                        <button type="button" class="absolute right-12 text-gray-500 profile-single-post-emoji-btn">😊</button>
+                        <button type="button" class="absolute right-12 text-gray-500 profile-single-post-emoji-btn">🙂</button>
                         <input type="text" placeholder="Add a comment..." class="profile-comment-input w-full text-sm border-none focus:ring-0 bg-transparent dark:text-gray-200">
                         <button type="submit" class="text-blue-500 font-semibold text-sm">Post</button>
                     </form>
@@ -412,7 +591,6 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     };
 
-    // New function to render single post modal for bookmarks
     const renderSinglePostBookmarksModal = (post) => {
         const postContent = document.getElementById('bookmarks-single-post-dynamic-area');
         const isLiked = post.likes.includes(currentUser._id);
@@ -438,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <p class="font-semibold text-sm bookmarks-likes-count">${post.likes.length} likes</p>
                     <form id="single-post-bookmarks-comment-form" class="comment-form flex items-center mt-2 border-t border-gray-200 dark:border-zinc-800 pt-2 relative">
-                        <button type="button" class="absolute right-12 text-gray-500 bookmarks-single-post-emoji-btn">😊</button>
+                        <button type="button" class="absolute right-12 text-gray-500 bookmarks-single-post-emoji-btn">🙂</button>
                         <input type="text" placeholder="Add a comment..." class="bookmarks-comment-input w-full text-sm border-none focus:ring-0 bg-transparent dark:text-gray-200">
                         <button type="submit" class="text-blue-500 font-semibold text-sm">Post</button>
                     </form>
@@ -484,22 +662,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 socket.on('receiveMessage', (message) => {
                     const chatWindow = document.getElementById('message-window');
                     if (chatWindow.dataset.userId === message.senderId._id) {
+                        const messagesContainer = document.getElementById('messages-container');
                         const messageEl = document.createElement('div');
                         messageEl.textContent = message.message;
-                        const isSender = msg.senderId._id === currentUser._id;
+                        const isSender = message.senderId._id === currentUser._id;
                         messageEl.className = `p-2 rounded-lg max-w-xs mb-2 ${isSender ? 'bg-blue-500 text-white self-end' : 'bg-gray-200 dark:bg-zinc-700 dark:text-gray-200 self-start'}`;
-                        document.getElementById('messages-container').prepend(messageEl);
+                        messagesContainer.prepend(messageEl);
                     }
                 });
             }
-            const [postsRes, usersRes] = await Promise.all([
+            const [postsRes, usersRes, storiesRes] = await Promise.all([
                 fetchWithAuth(`${API_URL}/api/posts`),
-                fetchWithAuth(`${API_URL}/api/users`)
+                fetchWithAuth(`${API_URL}/api/users`),
+                fetchWithAuth(`${API_URL}/api/stories`)
             ]);
             postsCache = await postsRes.json();
             usersCache = await usersRes.json();
+            storiesCache = await storiesRes.json();
+            console.log('Fetched stories:', storiesCache);
             renderPosts(postsCache, postsContainer);
             renderSuggestions(usersCache);
+            renderStories();
             showView('home');
         } catch (error) {
             console.error('Initialization failed:', error);
@@ -532,20 +715,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const profileCommentEmojiBtn = e.target.closest('#profile-comment-emoji-picker-btn');
             const bookmarksCommentEmojiBtn = e.target.closest('#bookmarks-comment-emoji-picker-btn');
             const profileEmojiBtn = e.target.closest('#emoji-picker-btn');
-            const createPostEmojiBtn = e.target.closest('#create-post-emoji-btn'); // New
+            const createPostEmojiBtn = e.target.closest('#create-post-emoji-btn');
             const searchResultItem = e.target.closest('#user-search-results .username-link');
             const postOptionsBtn = e.target.closest('.post-options-btn');
             const editPostBtn = e.target.closest('.edit-post-btn');
             const deletePostBtn = e.target.closest('.delete-post-btn');
             const bookmarkBtn = e.target.closest('.feed-bookmark-btn, .profile-bookmark-btn, .bookmarks-bookmark-btn');
-
-            // Find all active post options dropdowns
+            const storyItem = e.target.closest('.story-item');
+            const myStoryBtn = e.target.closest('#create-story-btn');
             const allDropdowns = document.querySelectorAll('.post-options-dropdown:not(.hidden)');
 
             if (postOptionsBtn) {
                 e.stopPropagation();
                 const dropdown = postOptionsBtn.closest('.relative').querySelector('.post-options-dropdown');
-                // Close other dropdowns before opening the new one
                 allDropdowns.forEach(d => {
                     if (d !== dropdown) {
                         d.classList.add('hidden');
@@ -553,7 +735,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 dropdown.classList.toggle('hidden');
             } else if (allDropdowns.length > 0 && !e.target.closest('.post-options-dropdown')) {
-                // If a click happens outside of any dropdown or its toggle button, close all dropdowns
                 allDropdowns.forEach(d => d.classList.add('hidden'));
             }
 
@@ -622,7 +803,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (shareBtn) {
                 e.preventDefault();
-                // Get the post ID from the closest post card
                 const postCard = shareBtn.closest('.feed-post-card, .profile-post-card, .bookmarks-post-card');
                 if (!postCard) return;
 
@@ -631,7 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (post) {
                     const baseUrl = document.body.dataset.baseUrl;
-                    const postLink = `${baseUrl}/p/${post._id}`; // Example of a post link
+                    const postLink = `${baseUrl}/p/${post._id}`;
                     const shareText = `Check out this post from ${post.user.username}: ${post.caption.substring(0, 50)}... ${postLink}`;
                     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
                     window.open(whatsappUrl, '_blank');
@@ -673,20 +853,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (error) { alert(error.message); }
             }
 
-            // This event handler is for opening the post modal on image click
             if (profilePostItem) {
-                // Ensure the click is not on the options button
                 if (!e.target.closest('.post-options-btn')) {
                     const postId = profilePostItem.dataset.postId;
                     const post = postsCache.find(p => p._id === postId);
                     if (post) renderSinglePostProfileModal(post);
                 }
             }
-
             if (bookmarksPostItem) {
                 const postId = bookmarksPostItem.dataset.postId;
                 const post = postsCache.find(p => p._id === postId);
                 if (post) renderSinglePostBookmarksModal(post);
+            }
+            
+            if (myStoryBtn) {
+                e.preventDefault();
+                const userId = myStoryBtn.dataset.userId;
+                if (userId) {
+                    const myStories = storiesCache.filter(s => s.user._id === userId);
+                    if (myStories.length > 0) {
+                        renderStoryModal(myStories, 0);
+                    }
+                } else {
+                    createStoryModal.classList.replace('hidden', 'flex');
+                }
+            }
+            
+            if (storyItem) {
+                e.preventDefault();
+                const userId = storyItem.dataset.userId;
+                const userStories = storiesCache.filter(s => s.user._id === userId);
+                if (userStories.length > 0) {
+                    renderStoryModal(userStories, 0);
+                }
             }
 
             if (editProfileBtn) {
@@ -828,7 +1027,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 viewRepliesBtn.textContent = repliesContainer.classList.contains('hidden') ? `View replies (${repliesContainer.children.length})` : 'Hide replies';
             }
 
-            // Refactored Emoji Button Logic
             if (feedSinglePostEmojiBtn) {
                 const form = feedSinglePostEmojiBtn.closest('form');
                 const emojiPicker = form.nextElementSibling;
@@ -859,13 +1057,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (createPostEmojiBtn) {
                 document.getElementById('create-post-emoji-picker').classList.toggle('hidden');
             }
-            // Add handler for the edit post emoji button
             if (e.target.closest('#edit-post-emoji-btn')) {
                 document.getElementById('edit-post-emoji-picker').classList.toggle('hidden');
             }
 
             if (editPostBtn) {
-                e.stopPropagation(); // Prevent the click from bubbling up
+                e.stopPropagation();
                 const postId = editPostBtn.dataset.postId;
                 const postToEdit = postsCache.find(p => p._id === postId);
                 if (postToEdit) {
@@ -876,13 +1073,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (deletePostBtn) {
-                e.stopPropagation(); // Prevent the click from bubbling up
+                e.stopPropagation();
                 const postId = deletePostBtn.dataset.postId;
                 if (confirm('Are you sure you want to delete this post?')) {
                     try {
                         const res = await fetchWithAuth(`${API_URL}/api/posts/${postId}`, { method: 'DELETE' });
                         if (!res.ok) throw new Error('Failed to delete post.');
-                        // Remove the post from the UI and cache
                         postsCache = postsCache.filter(p => p._id !== postId);
                         const userPostsRes = await fetchWithAuth(`${API_URL}/api/posts/user/${currentUser._id}`);
                         const userPosts = await userPostsRes.json();
@@ -895,7 +1091,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("An error occurred in a click event handler:", error);
-            // Optionally, you could display a user-friendly error message here.
         }
     });
 
@@ -907,13 +1102,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const signupForm = e.target.closest('#signupForm');
             const messageForm = e.target.closest('#message-form');
             const editPostForm = e.target.closest('#editPostForm');
+            const createStoryForm = e.target.closest('#createStoryForm');
 
-            // Separate single post comment forms
             const singlePostFeedCommentForm = e.target.closest('#single-post-feed-comment-form');
             const singlePostProfileCommentForm = e.target.closest('#single-post-profile-comment-form');
             const singlePostBookmarksCommentForm = e.target.closest('#single-post-bookmarks-comment-form');
 
-            // Separate comment modal forms
             const feedModalCommentForm = e.target.closest('#feed-modal-comment-form');
             const profileModalCommentForm = e.target.closest('#profile-modal-comment-form');
             const bookmarksModalCommentForm = e.target.closest('#bookmarks-modal-comment-form');
@@ -940,7 +1134,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     delete singlePostFeedCommentForm.dataset.parentId;
                     input.placeholder = 'Add a comment...';
 
-                    // Re-render feed and the modal
                     renderPosts(postsCache, postsContainer);
                     const modalCommentsSection = document.querySelector('#feed-single-post-dynamic-area .feed-comments-section');
                     if (modalCommentsSection) {
@@ -999,15 +1192,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     input.value = '';
-                    delete singlePostBookmarksCommentForm.dataset.parentId;
                     input.placeholder = 'Add a comment...';
-
-                    const modalCommentsSection = document.querySelector('#bookmarks-single-post-dynamic-area .bookmarks-comments-section');
-                    if (modalCommentsSection) {
-                        renderCommentsForModal(updatedComments, modalCommentsSection);
-                        lucide.createIcons();
-                    }
-
+                    delete singlePostBookmarksCommentForm.dataset.parentId;
+                    renderCommentsForModal(updatedComments, document.getElementById('bookmarks-comment-modal-list'));
                 } catch (error) { console.error(error); }
             }
             else if (feedModalCommentForm) {
@@ -1091,7 +1278,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Disable the button immediately
                 createPostButton.disabled = true;
                 createPostButton.textContent = 'Sharing...';
 
@@ -1110,9 +1296,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (error) {
                     alert(error.message);
                 } finally {
-                    // Re-enable the button regardless of success or failure
                     createPostButton.disabled = false;
                     createPostButton.textContent = 'Share';
+                }
+            }
+            else if (createStoryForm) {
+                e.preventDefault();
+                const createStoryButton = document.getElementById('createStoryButton');
+                const imageFile = document.getElementById('storyImageFile').files[0];
+
+                if (!imageFile) {
+                    alert('Please select an image to upload for your story.');
+                    return;
+                }
+
+                createStoryButton.disabled = true;
+                createStoryButton.textContent = 'Sharing...';
+
+                try {
+                    const imageUrl = await uploadImageToCloudinary(imageFile);
+                    if (!imageUrl) {
+                        alert('Image upload failed.');
+                        return;
+                    }
+
+                    const res = await fetchWithAuth(`${API_URL}/api/stories`, {
+                        method: 'POST',
+                        body: JSON.stringify({ imageUrl }),
+                    });
+
+                    if (!res.ok) throw new Error('Failed to create story.');
+
+                    createStoryModal.classList.replace('flex', 'hidden');
+                    initializeApp();
+                } catch (error) {
+                    alert(error.message);
+                } finally {
+                    createStoryButton.disabled = false;
+                    createStoryButton.textContent = 'Share Story';
                 }
             }
             else if (editPostForm) {
@@ -1136,7 +1357,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!res.ok) throw new Error('Failed to update post.');
 
                     editPostModal.classList.replace('flex', 'hidden');
-                    // Re-fetch all posts to update the UI
                     initializeApp();
                 } catch (error) {
                     console.error(error);
@@ -1210,7 +1430,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } catch (error) {
-            console.error("An error occurred in a form submit handler:", error);
+            console.error("An error occurred in a click event handler:", error);
         }
     });
 
@@ -1272,11 +1492,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.addEventListener('click', (e) => {
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('#edit-profile-modal .modal-cancel-button') || e.target.id === 'edit-profile-modal') {
-                editProfileModal.classList.replace('flex', 'hidden');
-            }
-        });
+        if (e.target.closest('#edit-profile-modal .modal-cancel-button') || e.target.id === 'edit-profile-modal') {
+            editProfileModal.classList.replace('flex', 'hidden');
+        }
         if (e.target.closest('.feed-modal-close-button') || e.target.classList.contains('modal-backdrop')) {
             feedSinglePostModal.classList.replace('flex', 'hidden');
         }
@@ -1298,10 +1516,16 @@ document.addEventListener('DOMContentLoaded', () => {
             bookmarksCommentModal.classList.replace('flex', 'hidden');
             resetCommentModal(document.getElementById('bookmarks-modal-comment-form'), document.getElementById('bookmarks-modal-comment-input'));
         }
+        if (e.target.closest('#view-story-modal .modal-cancel-button') || e.target.id === 'view-story-modal') {
+            viewStoryModal.classList.replace('flex', 'hidden');
+            clearInterval(storyInterval);
+        }
 
-        // Add listeners for create and edit post modals
         if (e.target.closest('#create-post-modal .modal-cancel-button') || e.target.id === 'create-post-modal') {
             createPostModal.classList.replace('flex', 'hidden');
+        }
+        if (e.target.closest('#create-story-modal .modal-cancel-button') || e.target.id === 'create-story-modal') {
+            createStoryModal.classList.replace('flex', 'hidden');
         }
         if (e.target.closest('#edit-post-modal .modal-cancel-button') || e.target.id === 'edit-post-modal') {
             editPostModal.classList.replace('flex', 'hidden');
@@ -1315,7 +1539,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Delegated listener for all emoji-click events
     document.body.addEventListener('emoji-click', e => {
         const picker = e.target;
         const unicode = e.detail.unicode;
@@ -1348,7 +1571,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('postCaption').value += unicode;
             picker.classList.add('hidden');
         }
-        // Add handler for the edit post emoji picker
         else if (picker.closest('#edit-post-modal')) {
             document.getElementById('editPostCaption').value += unicode;
             picker.classList.add('hidden');
